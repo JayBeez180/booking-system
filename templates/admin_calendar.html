@@ -4,12 +4,23 @@
 
 {% block content %}
 <style>
+    /* Brand Colors */
+    :root {
+        --cal-dark-green: #1a3a32;
+        --cal-darker-green: #142b26;
+        --cal-gold: #c9a962;
+        --cal-gold-light: #d4bc7c;
+        --cal-gold-dark: #a68b4b;
+        --cal-cream: #f5f1e8;
+    }
+
     /* Calendar Container */
     .calendar-wrapper {
-        background: #1a1a2e;
+        background: var(--cal-dark-green);
         border-radius: 12px;
         overflow: hidden;
         box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        border: 1px solid var(--cal-gold-dark);
     }
 
     /* Calendar Header */
@@ -18,8 +29,8 @@
         justify-content: space-between;
         align-items: center;
         padding: 15px 20px;
-        background: #16213e;
-        border-bottom: 1px solid #0f3460;
+        background: var(--cal-darker-green);
+        border-bottom: 1px solid var(--cal-gold-dark);
     }
 
     .calendar-nav {
@@ -30,8 +41,8 @@
 
     .calendar-nav button {
         background: transparent;
-        border: 1px solid #4a5568;
-        color: white;
+        border: 1px solid var(--cal-gold-dark);
+        color: var(--cal-cream);
         padding: 8px 15px;
         border-radius: 8px;
         cursor: pointer;
@@ -41,14 +52,14 @@
     }
 
     .calendar-nav button:hover {
-        background: #4a5568;
-        border-color: #718096;
+        background: rgba(201, 169, 98, 0.2);
+        border-color: var(--cal-gold);
     }
 
     .calendar-title {
         font-size: 18px;
         font-weight: 600;
-        color: white;
+        color: var(--cal-gold);
     }
 
     .view-toggle {
@@ -59,7 +70,7 @@
     .view-toggle a {
         padding: 8px 15px;
         background: transparent;
-        color: #a0aec0;
+        color: var(--cal-cream);
         text-decoration: none;
         border-radius: 8px;
         font-size: 14px;
@@ -68,25 +79,26 @@
     }
 
     .view-toggle a:hover {
-        background: rgba(255,255,255,0.1);
+        background: rgba(201, 169, 98, 0.15);
     }
 
     .view-toggle a.active {
-        background: #6c5ce7;
-        color: white;
+        background: var(--cal-gold);
+        color: var(--cal-darker-green);
     }
 
     .today-btn {
-        background: #6c5ce7 !important;
-        border-color: #6c5ce7 !important;
+        background: var(--cal-gold) !important;
+        border-color: var(--cal-gold) !important;
+        color: var(--cal-darker-green) !important;
     }
 
     /* Week Header - Days */
     .week-header {
         display: grid;
         grid-template-columns: 60px repeat(7, 1fr);
-        background: #16213e;
-        border-bottom: 1px solid #0f3460;
+        background: var(--cal-darker-green);
+        border-bottom: 1px solid var(--cal-gold-dark);
     }
 
     .week-header-spacer {
@@ -96,13 +108,13 @@
     .week-day-header {
         text-align: center;
         padding: 12px 8px;
-        border-left: 1px solid #0f3460;
+        border-left: 1px solid rgba(201, 169, 98, 0.3);
     }
 
     .week-day-header .day-num {
         font-size: 24px;
         font-weight: 600;
-        color: white;
+        color: var(--cal-cream);
         width: 40px;
         height: 40px;
         display: inline-flex;
@@ -113,12 +125,13 @@
     }
 
     .week-day-header .day-num.today {
-        background: #6c5ce7;
+        background: var(--cal-gold);
+        color: var(--cal-darker-green);
     }
 
     .week-day-header .day-name {
         font-size: 12px;
-        color: #718096;
+        color: var(--cal-gold-dark);
         text-transform: uppercase;
         letter-spacing: 1px;
     }
@@ -133,32 +146,32 @@
     }
 
     .time-column {
-        background: #1a1a2e;
+        background: var(--cal-dark-green);
     }
 
     .time-label {
         height: 60px;
         padding: 5px 8px;
         font-size: 11px;
-        color: #718096;
+        color: var(--cal-gold-dark);
         text-align: right;
-        border-bottom: 1px solid #0f3460;
+        border-bottom: 1px solid rgba(201, 169, 98, 0.2);
     }
 
     .day-column {
         position: relative;
-        border-left: 1px solid #0f3460;
+        border-left: 1px solid rgba(201, 169, 98, 0.2);
         min-height: 60px;
     }
 
     .hour-row {
         height: 60px;
-        border-bottom: 1px solid #0f3460;
+        border-bottom: 1px solid rgba(201, 169, 98, 0.2);
         position: relative;
     }
 
     .hour-row:hover {
-        background: rgba(108, 92, 231, 0.1);
+        background: rgba(201, 169, 98, 0.1);
     }
 
     .half-hour-line {
@@ -166,7 +179,7 @@
         top: 50%;
         left: 0;
         right: 0;
-        border-top: 1px dashed #2d3748;
+        border-top: 1px dashed rgba(201, 169, 98, 0.15);
     }
 
     /* Booking Blocks */
@@ -253,17 +266,19 @@
         position: absolute;
         left: 2px;
         right: 2px;
-        background: #4a5568;
+        background: rgba(201, 169, 98, 0.3);
         border-radius: 6px;
         padding: 4px 8px;
         font-size: 11px;
-        color: #a0aec0;
+        color: var(--cal-cream);
         z-index: 5;
+        border: 1px solid var(--cal-gold-dark);
     }
 
     .blocked-block.all-day {
-        background: #e74c3c;
+        background: #c0392b;
         color: white;
+        border-color: #c0392b;
     }
 
     /* Floating Add Button */
@@ -273,15 +288,15 @@
         right: 30px;
         width: 56px;
         height: 56px;
-        background: #6c5ce7;
+        background: var(--cal-gold);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
+        color: var(--cal-darker-green);
         font-size: 28px;
         cursor: pointer;
-        box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+        box-shadow: 0 4px 15px rgba(201, 169, 98, 0.4);
         transition: transform 0.2s, box-shadow 0.2s;
         z-index: 100;
         text-decoration: none;
@@ -289,7 +304,7 @@
 
     .fab-button:hover {
         transform: scale(1.1);
-        box-shadow: 0 6px 20px rgba(108, 92, 231, 0.5);
+        box-shadow: 0 6px 20px rgba(201, 169, 98, 0.5);
     }
 
     /* Legend */
@@ -297,9 +312,9 @@
         display: flex;
         gap: 15px;
         padding: 15px 20px;
-        background: #16213e;
+        background: var(--cal-darker-green);
         flex-wrap: wrap;
-        border-top: 1px solid #0f3460;
+        border-top: 1px solid var(--cal-gold-dark);
     }
 
     .legend-item {
@@ -307,7 +322,7 @@
         align-items: center;
         gap: 6px;
         font-size: 12px;
-        color: #a0aec0;
+        color: var(--cal-cream);
     }
 
     .legend-color {
@@ -316,7 +331,7 @@
         border-radius: 3px;
     }
 
-    /* Action Modal - Updated for dark theme */
+    /* Action Modal - Green theme */
     .action-modal {
         display: none;
         position: fixed;
@@ -335,20 +350,20 @@
     }
 
     .action-modal-content {
-        background: #1a1a2e;
+        background: var(--cal-dark-green);
         padding: 25px;
         border-radius: 12px;
         max-width: 450px;
         width: 90%;
         max-height: 80vh;
         overflow-y: auto;
-        color: white;
-        border: 1px solid #0f3460;
+        color: var(--cal-cream);
+        border: 1px solid var(--cal-gold-dark);
     }
 
     .action-modal h2 {
         margin-top: 0;
-        color: white;
+        color: var(--cal-gold);
         font-size: 20px;
     }
 
@@ -356,11 +371,11 @@
         float: right;
         font-size: 24px;
         cursor: pointer;
-        color: #718096;
+        color: var(--cal-gold-dark);
     }
 
     .action-modal-close:hover {
-        color: white;
+        color: var(--cal-gold);
     }
 
     .action-buttons {
@@ -377,19 +392,20 @@
     }
 
     .modal-detail-box {
-        background: #16213e;
+        background: var(--cal-darker-green);
         padding: 15px;
         border-radius: 8px;
         margin-bottom: 20px;
+        border: 1px solid rgba(201, 169, 98, 0.2);
     }
 
     .modal-detail-box div {
         margin-bottom: 8px;
-        color: #a0aec0;
+        color: var(--cal-cream);
     }
 
     .modal-detail-box strong {
-        color: white;
+        color: var(--cal-gold);
     }
 
     .quick-block-options {
@@ -399,15 +415,15 @@
     .quick-block-options label {
         display: block;
         margin-bottom: 8px;
-        color: #a0aec0;
+        color: var(--cal-cream);
     }
 
     .quick-block-options select,
     .quick-block-options input {
         margin-bottom: 10px;
-        background: #16213e;
-        border: 1px solid #0f3460;
-        color: white;
+        background: var(--cal-darker-green);
+        border: 1px solid var(--cal-gold-dark);
+        color: var(--cal-cream);
     }
 
     /* Responsive */
@@ -452,27 +468,28 @@
 
     /* Client Notes Alert (shown if alerts exist) */
     .client-notes-alert {
-        background: #44361f;
-        border: 1px solid #f1c40f;
+        background: rgba(201, 169, 98, 0.15);
+        border: 1px solid var(--cal-gold);
         padding: 12px 15px;
         border-radius: 8px;
         margin-bottom: 15px;
     }
 
     .client-notes-alert strong {
-        color: #f1c40f;
+        color: var(--cal-gold);
     }
 
     /* Email Controls Section */
     .email-controls-section {
-        background: #2d1f4e;
+        background: rgba(201, 169, 98, 0.1);
         padding: 12px 15px;
         border-radius: 8px;
         margin-bottom: 15px;
+        border: 1px solid rgba(201, 169, 98, 0.2);
     }
 
     .email-controls-section strong {
-        color: #a29bfe;
+        color: var(--cal-gold);
     }
 </style>
 
@@ -576,17 +593,17 @@
 
     {% elif view == 'day' %}
     <!-- Day View - Two Column Layout -->
-    <div style="background: #16213e; padding: 15px 20px; border-bottom: 1px solid #0f3460;">
-        <span style="color: white; font-size: 16px;">{{ current_date.strftime('%A, %d %B %Y') }}</span>
+    <div style="background: var(--cal-darker-green); padding: 15px 20px; border-bottom: 1px solid var(--cal-gold-dark);">
+        <span style="color: var(--cal-gold); font-size: 16px; font-weight: 600;">{{ current_date.strftime('%A, %d %B %Y') }}</span>
         {% if day_data.is_fully_blocked %}
-        <span style="background: #e74c3c; padding: 3px 10px; border-radius: 4px; font-size: 12px; margin-left: 10px; color: white;">DAY BLOCKED</span>
+        <span style="background: #c0392b; padding: 3px 10px; border-radius: 4px; font-size: 12px; margin-left: 10px; color: white;">DAY BLOCKED</span>
         {% endif %}
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: #0f3460;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--cal-gold-dark);">
         <!-- Morning Column: 9am - 2pm -->
-        <div style="background: #1a1a2e;">
-            <div style="background: #16213e; padding: 10px; text-align: center; color: #a0aec0; font-size: 13px; font-weight: 600; border-bottom: 1px solid #0f3460;">
+        <div style="background: var(--cal-dark-green);">
+            <div style="background: var(--cal-darker-green); padding: 10px; text-align: center; color: var(--cal-gold); font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--cal-gold-dark);">
                 Morning
             </div>
             <div class="time-grid" style="grid-template-columns: 50px 1fr;">
@@ -602,11 +619,11 @@
                     {% endif %}
                     {% endfor %}
                 </div>
-                <div class="day-column" style="border-left: 1px solid #0f3460;">
+                <div class="day-column" style="border-left: 1px solid rgba(201, 169, 98, 0.2);">
                     {% for slot in time_slots %}
                     {% set hour = slot.time.split(':')[0]|int %}
                     {% if hour < 14 %}
-                    <div class="hour-row" style="height: 20px; border-bottom: {% if slot.time.endswith(':00') %}1px solid #0f3460{% elif slot.time.endswith(':30') %}1px dashed #2d3748{% else %}1px dotted #1e2a3a{% endif %};"
+                    <div class="hour-row" style="height: 20px; border-bottom: {% if slot.time.endswith(':00') %}1px solid rgba(201, 169, 98, 0.3){% elif slot.time.endswith(':30') %}1px dashed rgba(201, 169, 98, 0.2){% else %}1px dotted rgba(201, 169, 98, 0.1){% endif %};"
                          {% if not slot.booking and not slot.blocked %}
                          onclick="openActionModal('{{ current_date.isoformat() }}', '{{ slot.time }}')"
                          {% endif %}>
@@ -644,8 +661,8 @@
         </div>
 
         <!-- Afternoon Column: 2pm - 9pm -->
-        <div style="background: #1a1a2e;">
-            <div style="background: #16213e; padding: 10px; text-align: center; color: #a0aec0; font-size: 13px; font-weight: 600; border-bottom: 1px solid #0f3460;">
+        <div style="background: var(--cal-dark-green);">
+            <div style="background: var(--cal-darker-green); padding: 10px; text-align: center; color: var(--cal-gold); font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--cal-gold-dark);">
                 Afternoon / Evening
             </div>
             <div class="time-grid" style="grid-template-columns: 50px 1fr;">
@@ -661,11 +678,11 @@
                     {% endif %}
                     {% endfor %}
                 </div>
-                <div class="day-column" style="border-left: 1px solid #0f3460;">
+                <div class="day-column" style="border-left: 1px solid rgba(201, 169, 98, 0.2);">
                     {% for slot in time_slots %}
                     {% set hour = slot.time.split(':')[0]|int %}
                     {% if hour >= 14 %}
-                    <div class="hour-row" style="height: 20px; border-bottom: {% if slot.time.endswith(':00') %}1px solid #0f3460{% elif slot.time.endswith(':30') %}1px dashed #2d3748{% else %}1px dotted #1e2a3a{% endif %};"
+                    <div class="hour-row" style="height: 20px; border-bottom: {% if slot.time.endswith(':00') %}1px solid rgba(201, 169, 98, 0.3){% elif slot.time.endswith(':30') %}1px dashed rgba(201, 169, 98, 0.2){% else %}1px dotted rgba(201, 169, 98, 0.1){% endif %};"
                          {% if not slot.booking and not slot.blocked %}
                          onclick="openActionModal('{{ current_date.isoformat() }}', '{{ slot.time }}')"
                          {% endif %}>
@@ -705,17 +722,17 @@
 
     {% else %}
     <!-- Month View -->
-    <div style="display: grid; grid-template-columns: repeat(7, 1fr); background: #16213e;">
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); background: var(--cal-darker-green);">
         {% for day_name in days_of_week %}
-        <div style="padding: 12px; text-align: center; color: #718096; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #0f3460;">{{ day_name[:3] }}</div>
+        <div style="padding: 12px; text-align: center; color: var(--cal-gold-dark); font-size: 12px; text-transform: uppercase; border-bottom: 1px solid var(--cal-gold-dark);">{{ day_name[:3] }}</div>
         {% endfor %}
     </div>
 
-    <div style="display: grid; grid-template-columns: repeat(7, 1fr); background: #1a1a2e;">
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); background: var(--cal-dark-green);">
         {% for day in calendar_data %}
-        <div style="min-height: 100px; padding: 8px; border: 1px solid #0f3460; cursor: pointer; {% if not day.is_current_month %}opacity: 0.5;{% endif %} {% if day.is_today %}background: rgba(108, 92, 231, 0.2);{% endif %}"
+        <div style="min-height: 100px; padding: 8px; border: 1px solid rgba(201, 169, 98, 0.2); cursor: pointer; {% if not day.is_current_month %}opacity: 0.5;{% endif %} {% if day.is_today %}background: rgba(201, 169, 98, 0.15);{% endif %}"
              onclick="window.location.href='?view=day&date={{ day.date.isoformat() }}'">
-            <div style="font-weight: 600; color: {% if day.is_today %}#6c5ce7{% else %}white{% endif %}; margin-bottom: 5px;">
+            <div style="font-weight: 600; color: {% if day.is_today %}var(--cal-gold){% else %}var(--cal-cream){% endif %}; margin-bottom: 5px;">
                 {{ day.date.day }}
             </div>
 
@@ -727,11 +744,11 @@
             {% endfor %}
 
             {% if day.bookings|length > 3 %}
-            <div style="font-size: 10px; color: #718096; text-align: center;">+{{ day.bookings|length - 3 }} more</div>
+            <div style="font-size: 10px; color: var(--cal-gold-dark); text-align: center;">+{{ day.bookings|length - 3 }} more</div>
             {% endif %}
 
             {% if day.is_fully_blocked %}
-            <div style="font-size: 10px; padding: 2px 4px; background: #e74c3c; color: white; border-radius: 3px; text-align: center;">Blocked</div>
+            <div style="font-size: 10px; padding: 2px 4px; background: #c0392b; color: white; border-radius: 3px; text-align: center;">Blocked</div>
             {% endif %}
         </div>
         {% endfor %}
