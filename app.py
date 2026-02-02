@@ -991,13 +991,30 @@ def admin_calendar():
 
         title = f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b %Y')}"
 
+    # Determine working hours for week view
+    start_hour = 9  # Default start
+    end_hour = 19   # Default end
+
+    # Try to get availability to determine hours
+    all_availabilities = Availability.query.filter_by(is_active=True).all()
+    if all_availabilities:
+        earliest = min(int(a.start_time.split(':')[0]) for a in all_availabilities)
+        latest = max(int(a.end_time.split(':')[0]) for a in all_availabilities)
+        start_hour = earliest
+        end_hour = latest
+
+    hours = list(range(start_hour, end_hour))
+
     # Build calendar data for week/month views
     calendar_data = []
+    week_days = []  # For visual week view
     current = start_date
 
     while current <= end_date:
+        day_name_full = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][current.weekday()]
         day_data = {
             'date': current,
+            'day_name': day_name_full,
             'is_today': current == date.today(),
             'is_current_month': current.month == current_date.month,
             'bookings': [],
@@ -1024,7 +1041,8 @@ def admin_calendar():
                 'service_id': booking.service_id,
                 'status': booking.status,
                 'category': category_name,
-                'has_notes': has_notes
+                'has_notes': has_notes,
+                'price': booking.service.price if booking.service else 0
             })
 
         # Get blocked times for this day
@@ -1064,10 +1082,15 @@ def admin_calendar():
             })
 
         calendar_data.append(day_data)
+        if view == 'week':
+            week_days.append(day_data)
         current += timedelta(days=1)
 
     return render_template('admin_calendar.html',
                          calendar_data=calendar_data,
+                         week_days=week_days,
+                         hours=hours,
+                         start_hour=start_hour,
                          view=view,
                          current_date=current_date,
                          prev_date=prev_date.isoformat(),
