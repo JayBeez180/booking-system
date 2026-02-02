@@ -1015,7 +1015,7 @@ def admin_calendar():
 
     # Determine working hours for week view
     start_hour = 9  # Default start
-    end_hour = 19   # Default end
+    end_hour = 21   # Default end (9pm)
 
     # Try to get availability to determine hours
     all_availabilities = Availability.query.filter_by(is_active=True).all()
@@ -1023,7 +1023,7 @@ def admin_calendar():
         earliest = min(int(a.start_time.split(':')[0]) for a in all_availabilities)
         latest = max(int(a.end_time.split(':')[0]) for a in all_availabilities)
         start_hour = earliest
-        end_hour = latest
+        end_hour = max(latest + 1, 21)  # Include last hour, minimum 9pm
 
     hours = list(range(start_hour, end_hour))
 
