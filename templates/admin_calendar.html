@@ -575,7 +575,7 @@
     </div>
 
     {% elif view == 'day' %}
-    <!-- Day View -->
+    <!-- Day View - Two Column Layout -->
     <div style="background: #16213e; padding: 15px 20px; border-bottom: 1px solid #0f3460;">
         <span style="color: white; font-size: 16px;">{{ current_date.strftime('%A, %d %B %Y') }}</span>
         {% if day_data.is_fully_blocked %}
@@ -583,51 +583,123 @@
         {% endif %}
     </div>
 
-    <div class="time-grid" style="grid-template-columns: 60px 1fr;">
-        <div class="time-column">
-            {% for slot in time_slots %}
-            {% if slot.time.endswith(':00') %}
-            <div class="time-label" style="height: 15px;">{{ slot.time[:2] }}:00</div>
-            {% else %}
-            <div class="time-label" style="height: 15px;"></div>
-            {% endif %}
-            {% endfor %}
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: #0f3460;">
+        <!-- Morning Column: 9am - 2pm -->
+        <div style="background: #1a1a2e;">
+            <div style="background: #16213e; padding: 10px; text-align: center; color: #a0aec0; font-size: 13px; font-weight: 600; border-bottom: 1px solid #0f3460;">
+                Morning
+            </div>
+            <div class="time-grid" style="grid-template-columns: 50px 1fr;">
+                <div class="time-column">
+                    {% for slot in time_slots %}
+                    {% set hour = slot.time.split(':')[0]|int %}
+                    {% if hour < 14 %}
+                    {% if slot.time.endswith(':00') %}
+                    <div class="time-label" style="height: 20px; font-size: 12px;">{{ slot.time[:5] }}</div>
+                    {% else %}
+                    <div class="time-label" style="height: 20px;"></div>
+                    {% endif %}
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="day-column" style="border-left: 1px solid #0f3460;">
+                    {% for slot in time_slots %}
+                    {% set hour = slot.time.split(':')[0]|int %}
+                    {% if hour < 14 %}
+                    <div class="hour-row" style="height: 20px; border-bottom: {% if slot.time.endswith(':00') %}1px solid #0f3460{% elif slot.time.endswith(':30') %}1px dashed #2d3748{% else %}1px dotted #1e2a3a{% endif %};"
+                         {% if not slot.booking and not slot.blocked %}
+                         onclick="openActionModal('{{ current_date.isoformat() }}', '{{ slot.time }}')"
+                         {% endif %}>
+
+                        {% if slot.booking and slot.time == slot.booking.time %}
+                        {% set start_parts = slot.booking.time.split(':') %}
+                        {% set end_parts = slot.booking.end_time.split(':') %}
+                        {% set duration_mins = (end_parts[0]|int * 60 + end_parts[1]|int) - (start_parts[0]|int * 60 + start_parts[1]|int) %}
+                        {% set height_px = (duration_mins / 15 * 20)|int %}
+                        <div class="booking-block cat-{{ slot.booking.category }} {% if slot.booking.status == 'no_show' %}no-show{% elif slot.booking.status == 'completed' %}completed{% endif %}"
+                             style="top: 0; height: {{ height_px }}px; left: 3px; right: 3px;"
+                             onclick="event.stopPropagation(); openEditModal({{ slot.booking.id }}, '{{ slot.booking.customer | e }}', '{{ slot.booking.service | e }}', '{{ slot.booking.time }}', '{{ slot.booking.end_time }}', '{{ current_date.isoformat() }}', '{{ slot.booking.status }}', '{{ slot.booking.email | e }}')">
+                            <div class="booking-icons">{% if slot.booking.has_notes %}📝{% endif %}{% if slot.booking.status == 'completed' %}✓{% endif %}</div>
+                            <div class="client-name">{{ slot.booking.customer }}</div>
+                            <div class="service-info">{{ slot.booking.service }}</div>
+                            <div class="price">{{ slot.booking.time }} - {{ slot.booking.end_time }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if slot.blocked and slot.time == slot.blocked.start_time %}
+                        {% set start_parts = slot.blocked.start_time.split(':') %}
+                        {% set end_parts = slot.blocked.end_time.split(':') %}
+                        {% set duration_mins = (end_parts[0]|int * 60 + end_parts[1]|int) - (start_parts[0]|int * 60 + start_parts[1]|int) %}
+                        {% set height_px = (duration_mins / 15 * 20)|int %}
+                        <div class="blocked-block {% if slot.blocked.is_recurring %}recurring{% endif %}"
+                             style="top: 0; height: {{ height_px }}px; left: 3px; right: 3px;">
+                            {{ slot.blocked.reason or 'Blocked' }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
         </div>
 
-        <div class="day-column" style="border-left: 1px solid #0f3460;">
-            {% for slot in time_slots %}
-            <div class="hour-row" style="height: 15px; border-bottom: {% if slot.time.endswith(':00') %}1px solid #0f3460{% else %}1px dashed #2d3748{% endif %};"
-                 {% if not slot.booking and not slot.blocked %}
-                 onclick="openActionModal('{{ current_date.isoformat() }}', '{{ slot.time }}')"
-                 {% endif %}>
-
-                {% if slot.booking and slot.time == slot.booking.time %}
-                {% set start_parts = slot.booking.time.split(':') %}
-                {% set end_parts = slot.booking.end_time.split(':') %}
-                {% set duration_mins = (end_parts[0]|int * 60 + end_parts[1]|int) - (start_parts[0]|int * 60 + start_parts[1]|int) %}
-                {% set height_px = duration_mins %}
-                <div class="booking-block cat-{{ slot.booking.category }} {% if slot.booking.status == 'no_show' %}no-show{% endif %}"
-                     style="top: 0; height: {{ height_px }}px; left: 5px; right: 5px;"
-                     onclick="event.stopPropagation(); openEditModal({{ slot.booking.id }}, '{{ slot.booking.customer | e }}', '{{ slot.booking.service | e }}', '{{ slot.booking.time }}', '{{ slot.booking.end_time }}', '{{ current_date.isoformat() }}', '{{ slot.booking.status }}', '{{ slot.booking.email | e }}')">
-                    <div class="booking-icons">{% if slot.booking.has_notes %}📝{% endif %}</div>
-                    <div class="client-name">{{ slot.booking.customer }}</div>
-                    <div class="service-info">{{ slot.booking.service }} ({{ slot.booking.time }} - {{ slot.booking.end_time }})</div>
-                </div>
-                {% endif %}
-
-                {% if slot.blocked and slot.time == slot.blocked.start_time %}
-                {% set start_parts = slot.blocked.start_time.split(':') %}
-                {% set end_parts = slot.blocked.end_time.split(':') %}
-                {% set duration_mins = (end_parts[0]|int * 60 + end_parts[1]|int) - (start_parts[0]|int * 60 + start_parts[1]|int) %}
-                {% set height_px = duration_mins %}
-                <div class="blocked-block {% if slot.blocked.is_recurring %}recurring{% endif %}"
-                     style="top: 0; height: {{ height_px }}px; left: 5px; right: 5px;">
-                    {{ slot.blocked.reason or 'Blocked' }}
-                    <br><span style="font-size: 10px;">{{ slot.blocked.start_time }} - {{ slot.blocked.end_time }}</span>
-                </div>
-                {% endif %}
+        <!-- Afternoon Column: 2pm - 9pm -->
+        <div style="background: #1a1a2e;">
+            <div style="background: #16213e; padding: 10px; text-align: center; color: #a0aec0; font-size: 13px; font-weight: 600; border-bottom: 1px solid #0f3460;">
+                Afternoon / Evening
             </div>
-            {% endfor %}
+            <div class="time-grid" style="grid-template-columns: 50px 1fr;">
+                <div class="time-column">
+                    {% for slot in time_slots %}
+                    {% set hour = slot.time.split(':')[0]|int %}
+                    {% if hour >= 14 %}
+                    {% if slot.time.endswith(':00') %}
+                    <div class="time-label" style="height: 20px; font-size: 12px;">{{ slot.time[:5] }}</div>
+                    {% else %}
+                    <div class="time-label" style="height: 20px;"></div>
+                    {% endif %}
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="day-column" style="border-left: 1px solid #0f3460;">
+                    {% for slot in time_slots %}
+                    {% set hour = slot.time.split(':')[0]|int %}
+                    {% if hour >= 14 %}
+                    <div class="hour-row" style="height: 20px; border-bottom: {% if slot.time.endswith(':00') %}1px solid #0f3460{% elif slot.time.endswith(':30') %}1px dashed #2d3748{% else %}1px dotted #1e2a3a{% endif %};"
+                         {% if not slot.booking and not slot.blocked %}
+                         onclick="openActionModal('{{ current_date.isoformat() }}', '{{ slot.time }}')"
+                         {% endif %}>
+
+                        {% if slot.booking and slot.time == slot.booking.time %}
+                        {% set start_parts = slot.booking.time.split(':') %}
+                        {% set end_parts = slot.booking.end_time.split(':') %}
+                        {% set duration_mins = (end_parts[0]|int * 60 + end_parts[1]|int) - (start_parts[0]|int * 60 + start_parts[1]|int) %}
+                        {% set height_px = (duration_mins / 15 * 20)|int %}
+                        <div class="booking-block cat-{{ slot.booking.category }} {% if slot.booking.status == 'no_show' %}no-show{% elif slot.booking.status == 'completed' %}completed{% endif %}"
+                             style="top: 0; height: {{ height_px }}px; left: 3px; right: 3px;"
+                             onclick="event.stopPropagation(); openEditModal({{ slot.booking.id }}, '{{ slot.booking.customer | e }}', '{{ slot.booking.service | e }}', '{{ slot.booking.time }}', '{{ slot.booking.end_time }}', '{{ current_date.isoformat() }}', '{{ slot.booking.status }}', '{{ slot.booking.email | e }}')">
+                            <div class="booking-icons">{% if slot.booking.has_notes %}📝{% endif %}{% if slot.booking.status == 'completed' %}✓{% endif %}</div>
+                            <div class="client-name">{{ slot.booking.customer }}</div>
+                            <div class="service-info">{{ slot.booking.service }}</div>
+                            <div class="price">{{ slot.booking.time }} - {{ slot.booking.end_time }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if slot.blocked and slot.time == slot.blocked.start_time %}
+                        {% set start_parts = slot.blocked.start_time.split(':') %}
+                        {% set end_parts = slot.blocked.end_time.split(':') %}
+                        {% set duration_mins = (end_parts[0]|int * 60 + end_parts[1]|int) - (start_parts[0]|int * 60 + start_parts[1]|int) %}
+                        {% set height_px = (duration_mins / 15 * 20)|int %}
+                        <div class="blocked-block {% if slot.blocked.is_recurring %}recurring{% endif %}"
+                             style="top: 0; height: {{ height_px }}px; left: 3px; right: 3px;">
+                            {{ slot.blocked.reason or 'Blocked' }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 
