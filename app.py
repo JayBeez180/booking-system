@@ -907,7 +907,29 @@ def admin_calendar():
             # Check for bookings that cover this slot
             for booking in day_bookings:
                 if booking.booking_time <= slot_time < booking.end_time:
-                    category_name = booking.service.category.name.lower() if booking.service.category else 'other'
+                    # Create CSS-safe category slug
+                    if booking.service.category:
+                        cat_name = booking.service.category.name.lower()
+                        if 'ear' in cat_name:
+                            category_slug = 'ears'
+                        elif 'nose' in cat_name or 'nostril' in cat_name:
+                            category_slug = 'nose'
+                        elif 'consult' in cat_name:
+                            category_slug = 'consultation'
+                        elif 'jewel' in cat_name:
+                            category_slug = 'service'
+                        elif 'under' in cat_name or '16' in cat_name:
+                            category_slug = 'under16'
+                        elif 'body' in cat_name:
+                            category_slug = 'body'
+                        elif 'lip' in cat_name:
+                            category_slug = 'lips'
+                        elif 'face' in cat_name or 'facial' in cat_name:
+                            category_slug = 'face'
+                        else:
+                            category_slug = 'other'
+                    else:
+                        category_slug = 'other'
                     has_notes = booking.customer_email.lower() in emails_with_notes if booking.customer_email else False
                     slot['booking'] = {
                         'id': booking.id,
@@ -917,7 +939,7 @@ def admin_calendar():
                         'email': booking.customer_email,
                         'service': booking.service.name,
                         'status': booking.status,
-                        'category': category_name,
+                        'category': category_slug,
                         'has_notes': has_notes
                     }
                     break
@@ -1029,7 +1051,30 @@ def admin_calendar():
         ).order_by(Booking.booking_time).all()
 
         for booking in day_bookings:
-            category_name = booking.service.category.name.lower() if booking.service.category else 'other'
+            # Create CSS-safe category slug from category name
+            if booking.service.category:
+                cat_name = booking.service.category.name.lower()
+                # Map common category names to color slugs
+                if 'ear' in cat_name:
+                    category_slug = 'ears'
+                elif 'nose' in cat_name or 'nostril' in cat_name:
+                    category_slug = 'nose'
+                elif 'consult' in cat_name:
+                    category_slug = 'consultation'
+                elif 'jewel' in cat_name:
+                    category_slug = 'service'
+                elif 'under' in cat_name or '16' in cat_name:
+                    category_slug = 'under16'
+                elif 'body' in cat_name:
+                    category_slug = 'body'
+                elif 'lip' in cat_name:
+                    category_slug = 'lips'
+                elif 'face' in cat_name or 'facial' in cat_name:
+                    category_slug = 'face'
+                else:
+                    category_slug = 'other'
+            else:
+                category_slug = 'other'
             has_notes = booking.customer_email.lower() in emails_with_notes if booking.customer_email else False
             day_data['bookings'].append({
                 'id': booking.id,
@@ -1040,7 +1085,7 @@ def admin_calendar():
                 'service': booking.service.name,
                 'service_id': booking.service_id,
                 'status': booking.status,
-                'category': category_name,
+                'category': category_slug,
                 'has_notes': has_notes,
                 'price': booking.service.price if booking.service else 0
             })
