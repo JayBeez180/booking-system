@@ -861,10 +861,11 @@ def admin_calendar():
 
         # Default hours if no availability set
         start_hour = 9
-        end_hour = 18
+        end_hour = 21  # Show until 9pm
         if availability:
             start_hour = int(availability.start_time.split(':')[0])
-            end_hour = int(availability.end_time.split(':')[0])
+            avail_end = int(availability.end_time.split(':')[0])
+            end_hour = max(avail_end + 1, 21)  # Include last hour, minimum 9pm
 
         # Generate time slots (every 15 minutes)
         time_slots = []
