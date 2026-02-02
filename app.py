@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, Response
-from models import db, Service, Availability, Booking, IntakeForm, Settings, Category, BlockedTime, User, Aftercare, ClientNote
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, Response, g
+from models import db, Service, Availability, Booking, IntakeForm, Settings, Category, BlockedTime, User, Aftercare, ClientNote, AdminUser, ActivityLog
 from datetime import datetime, timedelta, date
 from functools import wraps
 import csv
@@ -45,6 +45,33 @@ def login_required(f):
             return redirect(url_for('admin_login', next=request.url))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def owner_required(f):
+    """Decorator to require owner role for routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            flash('Please log in to access the admin panel.', 'error')
+            return redirect(url_for('admin_login', next=request.url))
+        if session.get('admin_role') != 'owner':
+            flash('You do not have permission to access this page.', 'error')
+            return redirect(url_for('admin_calendar'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def get_current_admin():
+    """Get the currently logged in admin user"""
+    if session.get('admin_logged_in') and session.get('admin_user_id'):
+        return AdminUser.query.get(session.get('admin_user_id'))
+    return None
+
+
+@app.before_request
+def load_current_admin():
+    """Load current admin user before each request"""
+    g.current_admin = get_current_admin()
 
 
 def time_to_minutes(time_str):
@@ -341,17 +368,45 @@ def home():
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if session.get('admin_logged_in'):
-        return redirect(url_for('admin_services'))
+        return redirect(url_for('admin_calendar'))
 
     if request.method == 'POST':
         username = request.form.get('username', '')
         password = request.form.get('password', '')
 
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        # First try database authentication
+        admin_user = AdminUser.query.filter_by(username=username, is_active=True).first()
+
+        if admin_user and admin_user.check_password(password):
+            # Database user login
             session['admin_logged_in'] = True
+            session['admin_user_id'] = admin_user.id
+            session['admin_name'] = admin_user.name
+            session['admin_role'] = admin_user.role
+
+            # Update last login
+            admin_user.last_login = datetime.utcnow()
+            db.session.commit()
+
+            # Log the activity
+            ActivityLog.log(
+                action_type='owner_login' if admin_user.is_owner() else 'staff_login',
+                description=f'{admin_user.name} logged in',
+                admin_user_id=admin_user.id
+            )
+
+            flash(f'Welcome back, {admin_user.name}!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('admin_calendar'))
+
+        # Fallback to environment variable authentication (for initial setup / backwards compatibility)
+        elif username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['admin_logged_in'] = True
+            session['admin_name'] = 'Owner'
+            session['admin_role'] = 'owner'
             flash('Logged in successfully!', 'success')
             next_page = request.args.get('next')
-            return redirect(next_page or url_for('admin_services'))
+            return redirect(next_page or url_for('admin_calendar'))
         else:
             flash('Invalid username or password.', 'error')
 
@@ -361,6 +416,9 @@ def admin_login():
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
+    session.pop('admin_user_id', None)
+    session.pop('admin_name', None)
+    session.pop('admin_role', None)
     flash('Logged out successfully.', 'success')
     return redirect(url_for('home'))
 
@@ -1065,6 +1123,16 @@ def add_booking():
         db.session.add(booking)
         db.session.commit()
 
+        # Log the activity
+        admin_name = session.get('admin_name', 'Admin')
+        ActivityLog.log(
+            action_type='booking_created',
+            description=f'{admin_name} created booking for {booking.customer_name} ({service.name} on {booking_date.strftime("%d %b")} at {booking_time})',
+            admin_user_id=session.get('admin_user_id'),
+            booking_id=booking.id,
+            client_email=booking.customer_email
+        )
+
         flash('Booking added successfully!', 'success')
         return redirect(url_for('admin_calendar', view='day', date=booking_date.isoformat()))
 
@@ -1090,6 +1158,16 @@ def cancel_booking(booking_id):
     booking.status = 'cancelled'
     db.session.commit()
 
+    # Log the activity
+    admin_name = session.get('admin_name', 'Admin')
+    ActivityLog.log(
+        action_type='booking_cancelled',
+        description=f'{admin_name} cancelled booking for {booking.customer_name} ({booking.service.name} on {booking.booking_date.strftime("%d %b")} at {booking.booking_time})',
+        admin_user_id=session.get('admin_user_id'),
+        booking_id=booking.id,
+        client_email=booking.customer_email
+    )
+
     print("\n" + "=" * 50)
     print("BOOKING CANCELLED")
     print("=" * 50)
@@ -1114,6 +1192,16 @@ def mark_no_show(booking_id):
     booking.status = 'no_show'
     booking.no_show_at = datetime.now()
     db.session.commit()
+
+    # Log the activity
+    admin_name = session.get('admin_name', 'Admin')
+    ActivityLog.log(
+        action_type='booking_no_show',
+        description=f'{admin_name} marked {booking.customer_name} as no-show ({booking.service.name} on {booking.booking_date.strftime("%d %b")})',
+        admin_user_id=session.get('admin_user_id'),
+        booking_id=booking.id,
+        client_email=booking.customer_email
+    )
 
     print("\n" + "=" * 50)
     print("BOOKING MARKED AS NO-SHOW")
@@ -1154,6 +1242,16 @@ def mark_complete(booking_id):
     booking = Booking.query.get_or_404(booking_id)
     booking.status = 'completed'
     db.session.commit()
+
+    # Log the activity
+    admin_name = session.get('admin_name', 'Admin')
+    ActivityLog.log(
+        action_type='booking_completed',
+        description=f'{admin_name} completed booking for {booking.customer_name} ({booking.service.name})',
+        admin_user_id=session.get('admin_user_id'),
+        booking_id=booking.id,
+        client_email=booking.customer_email
+    )
 
     flash('Booking marked as completed.', 'success')
 
@@ -1882,6 +1980,15 @@ def add_client_note():
     db.session.add(note)
     db.session.commit()
 
+    # Log the activity
+    admin_name = session.get('admin_name', 'Admin')
+    ActivityLog.log(
+        action_type='client_note_added',
+        description=f'{admin_name} added {"⚠️ alert " if is_alert else ""}note for {client_name or client_email}',
+        admin_user_id=session.get('admin_user_id'),
+        client_email=client_email.lower()
+    )
+
     flash('Note added successfully!', 'success')
     if redirect_url:
         return redirect(redirect_url)
@@ -2149,6 +2256,15 @@ def intake_form():
 
         db.session.add(booking)
         db.session.commit()
+
+        # Log the activity (customer booking - no admin_user_id)
+        ActivityLog.log(
+            action_type='booking_created',
+            description=f'{customer_name} booked online: {service.name} on {booking_date_obj.strftime("%d %b")} at {pending["booking_time"]}',
+            admin_user_id=None,  # Customer booking, not admin
+            booking_id=booking.id,
+            client_email=customer_email
+        )
 
         # Clear session
         session.pop('pending_booking', None)
@@ -2811,10 +2927,195 @@ def delete_aftercare(aftercare_id):
     return redirect(url_for('admin_aftercare'))
 
 
+# ==================== ACTIVITY LOG / NOTIFICATIONS ====================
+
+@app.route('/admin/notifications')
+@login_required
+def get_notifications():
+    """API endpoint to get recent activity for notification bell"""
+    # Get last 20 activities
+    activities = ActivityLog.query.order_by(ActivityLog.created_at.desc()).limit(20).all()
+    unread_count = ActivityLog.query.filter_by(is_read=False).count()
+
+    return jsonify({
+        'unread_count': unread_count,
+        'activities': [{
+            'id': a.id,
+            'icon': a.get_icon(),
+            'action_type': a.action_type,
+            'description': a.description,
+            'is_read': a.is_read,
+            'created_at': a.created_at.strftime('%d %b %H:%M'),
+            'time_ago': get_time_ago(a.created_at)
+        } for a in activities]
+    })
+
+
+@app.route('/admin/notifications/mark-read', methods=['POST'])
+@login_required
+def mark_notifications_read():
+    """Mark all notifications as read"""
+    ActivityLog.query.filter_by(is_read=False).update({'is_read': True})
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/activity-log')
+@login_required
+def activity_log_page():
+    """Full activity log page"""
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+
+    activities = ActivityLog.query.order_by(ActivityLog.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    return render_template('admin_activity_log.html', activities=activities)
+
+
+def get_time_ago(dt):
+    """Get human-readable time ago string"""
+    now = datetime.utcnow()
+    diff = now - dt
+
+    if diff.days > 0:
+        if diff.days == 1:
+            return 'Yesterday'
+        elif diff.days < 7:
+            return f'{diff.days} days ago'
+        else:
+            return dt.strftime('%d %b')
+    elif diff.seconds >= 3600:
+        hours = diff.seconds // 3600
+        return f'{hours}h ago'
+    elif diff.seconds >= 60:
+        mins = diff.seconds // 60
+        return f'{mins}m ago'
+    else:
+        return 'Just now'
+
+
+# ==================== STAFF MANAGEMENT ====================
+
+@app.route('/admin/staff')
+@owner_required
+def admin_staff():
+    """Staff management page - owner only"""
+    staff_users = AdminUser.query.order_by(AdminUser.role.desc(), AdminUser.name).all()
+    return render_template('admin_staff.html', staff_users=staff_users)
+
+
+@app.route('/admin/staff/add', methods=['GET', 'POST'])
+@owner_required
+def add_staff():
+    """Add a new staff member"""
+    if request.method == 'POST':
+        username = request.form['username'].strip().lower()
+        password = request.form['password']
+        name = request.form['name'].strip()
+        role = request.form.get('role', 'staff')
+
+        # Check if username already exists
+        if AdminUser.query.filter_by(username=username).first():
+            flash('A user with this username already exists.', 'error')
+            return render_template('add_staff.html')
+
+        # Create new admin user
+        admin_user = AdminUser(
+            username=username,
+            name=name,
+            role=role
+        )
+        admin_user.set_password(password)
+
+        db.session.add(admin_user)
+        db.session.commit()
+
+        flash(f'Staff member "{name}" added successfully!', 'success')
+        return redirect(url_for('admin_staff'))
+
+    return render_template('add_staff.html')
+
+
+@app.route('/admin/staff/edit/<int:user_id>', methods=['GET', 'POST'])
+@owner_required
+def edit_staff(user_id):
+    """Edit a staff member"""
+    staff_user = AdminUser.query.get_or_404(user_id)
+
+    if request.method == 'POST':
+        staff_user.name = request.form['name'].strip()
+
+        # Only allow changing username if it's not taken by someone else
+        new_username = request.form['username'].strip().lower()
+        existing = AdminUser.query.filter_by(username=new_username).first()
+        if existing and existing.id != user_id:
+            flash('This username is already taken.', 'error')
+            return render_template('edit_staff.html', staff_user=staff_user)
+
+        staff_user.username = new_username
+
+        # Update password only if provided
+        new_password = request.form.get('password', '').strip()
+        if new_password:
+            staff_user.set_password(new_password)
+
+        # Update role (but don't allow demoting the last owner)
+        new_role = request.form.get('role', 'staff')
+        if staff_user.role == 'owner' and new_role == 'staff':
+            owner_count = AdminUser.query.filter_by(role='owner', is_active=True).count()
+            if owner_count <= 1:
+                flash('Cannot demote the last owner. Create another owner first.', 'error')
+                return render_template('edit_staff.html', staff_user=staff_user)
+        staff_user.role = new_role
+
+        db.session.commit()
+        flash('Staff member updated successfully!', 'success')
+        return redirect(url_for('admin_staff'))
+
+    return render_template('edit_staff.html', staff_user=staff_user)
+
+
+@app.route('/admin/staff/toggle/<int:user_id>', methods=['POST'])
+@owner_required
+def toggle_staff(user_id):
+    """Enable/disable a staff member"""
+    staff_user = AdminUser.query.get_or_404(user_id)
+
+    # Don't allow disabling the last active owner
+    if staff_user.role == 'owner' and staff_user.is_active:
+        owner_count = AdminUser.query.filter_by(role='owner', is_active=True).count()
+        if owner_count <= 1:
+            flash('Cannot disable the last owner.', 'error')
+            return redirect(url_for('admin_staff'))
+
+    staff_user.is_active = not staff_user.is_active
+    db.session.commit()
+
+    status = 'enabled' if staff_user.is_active else 'disabled'
+    flash(f'{staff_user.name} has been {status}.', 'success')
+    return redirect(url_for('admin_staff'))
+
+
 # Initialize database tables on startup (works for both local and production)
 with app.app_context():
     db.create_all()
     print("Database tables created/verified!")
+
+    # Create initial owner account if none exists
+    owner_count = AdminUser.query.filter_by(role='owner').count()
+    if owner_count == 0:
+        # Create owner from environment variables
+        owner = AdminUser(
+            username=ADMIN_USERNAME,
+            name='Owner',
+            role='owner'
+        )
+        owner.set_password(ADMIN_PASSWORD)
+        db.session.add(owner)
+        db.session.commit()
+        print(f"Created initial owner account: {ADMIN_USERNAME}")
 
 # Start the reminder scheduler (runs in background thread)
 start_reminder_scheduler()

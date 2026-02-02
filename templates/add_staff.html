@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Add Staff Member{% endblock %}
+
+{% block content %}
+<h1>Add Staff Member</h1>
+
+<form method="POST">
+    <label for="name">Display Name</label>
+    <input type="text" id="name" name="name" required placeholder="e.g., Sarah">
+
+    <label for="username">Login Username</label>
+    <input type="text" id="username" name="username" required placeholder="e.g., sarah@whitethornpiercing.com">
+    <small style="color: #666; display: block; margin-top: 5px;">This will be used to log in</small>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required minlength="6" placeholder="Minimum 6 characters">
+
+    <label for="role">Role</label>
+    <select id="role" name="role">
+        <option value="staff" selected>Staff - Can manage bookings and clients</option>
+        <option value="owner">Owner - Full access to everything</option>
+    </select>
+
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+        <h4 style="margin-top: 0;">Staff Permissions</h4>
+        <ul style="margin: 0; padding-left: 20px; color: #666;">
+            <li>View calendar and all bookings</li>
+            <li>Add, edit, and cancel bookings</li>
+            <li>View client information</li>
+            <li>Add and edit client notes</li>
+            <li>Mark bookings as complete or no-show</li>
+        </ul>
+
+        <h4 style="margin-bottom: 5px;">Staff Cannot</h4>
+        <ul style="margin: 0; padding-left: 20px; color: #666;">
+            <li>Access settings or change business info</li>
+            <li>Add, edit, or delete services</li>
+            <li>Manage other staff accounts</li>
+            <li>Delete client data permanently</li>
+        </ul>
+    </div>
+
+    <button type="submit" class="btn-success">Add Staff Member</button>
+    <a href="/admin/staff" class="btn" style="background: #95a5a6;">Cancel</a>
+</form>
+{% endblock %}

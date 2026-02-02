@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Staff Member{% endblock %}
+
+{% block content %}
+<h1>Edit Staff Member</h1>
+
+<form method="POST">
+    <label for="name">Display Name</label>
+    <input type="text" id="name" name="name" required value="{{ staff_user.name }}">
+
+    <label for="username">Login Username</label>
+    <input type="text" id="username" name="username" required value="{{ staff_user.username }}">
+
+    <label for="password">New Password</label>
+    <input type="password" id="password" name="password" minlength="6" placeholder="Leave blank to keep current password">
+    <small style="color: #666; display: block; margin-top: 5px;">Only fill this if you want to change the password</small>
+
+    <label for="role">Role</label>
+    <select id="role" name="role">
+        <option value="staff" {% if staff_user.role == 'staff' %}selected{% endif %}>Staff - Can manage bookings and clients</option>
+        <option value="owner" {% if staff_user.role == 'owner' %}selected{% endif %}>Owner - Full access to everything</option>
+    </select>
+
+    {% if staff_user.last_login %}
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+        <p style="margin: 0;"><strong>Last Login:</strong> {{ staff_user.last_login.strftime('%d %B %Y at %H:%M') }}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Account Created:</strong> {{ staff_user.created_at.strftime('%d %B %Y') }}</p>
+    </div>
+    {% endif %}
+
+    <button type="submit" class="btn-success">Save Changes</button>
+    <a href="/admin/staff" class="btn" style="background: #95a5a6;">Cancel</a>
+</form>
+{% endblock %}

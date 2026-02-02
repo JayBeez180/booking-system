@@ -276,3 +276,114 @@ class ClientNote(db.Model):
 
     def __repr__(self):
         return f'<ClientNote {self.client_email}>'
+
+
+class AdminUser(db.Model):
+    """Admin and staff user accounts"""
+    __tablename__ = 'admin_user'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(120), nullable=False, unique=True)
+    password_hash = db.Column(db.String(256), nullable=False)
+    name = db.Column(db.String(100), nullable=False)  # Display name
+    role = db.Column(db.String(20), nullable=False, default='staff')  # 'owner' or 'staff'
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
+
+    # Relationship to activity logs
+    activities = db.relationship('ActivityLog', backref='admin_user', lazy=True)
+
+    def set_password(self, password):
+        """Hash and set the password"""
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+
+    def check_password(self, password):
+        """Check if password matches"""
+        return check_password_hash(self.password_hash, password)
+
+    def is_owner(self):
+        """Check if user is the owner"""
+        return self.role == 'owner'
+
+    def __repr__(self):
+        return f'<AdminUser {self.username} ({self.role})>'
+
+
+class ActivityLog(db.Model):
+    """Activity log for tracking admin/staff actions"""
+    __tablename__ = 'activity_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    admin_user_id = db.Column(db.Integer, db.ForeignKey('admin_user.id'), nullable=True)
+    action_type = db.Column(db.String(50), nullable=False)  # 'booking_created', 'booking_cancelled', etc.
+    description = db.Column(db.Text, nullable=False)
+
+    # Optional references to related objects
+    booking_id = db.Column(db.Integer, db.ForeignKey('booking.id'), nullable=True)
+    client_email = db.Column(db.String(120), nullable=True)
+
+    # For tracking what changed
+    details = db.Column(db.Text, nullable=True)  # JSON string with additional details
+
+    is_read = db.Column(db.Boolean, default=False)  # For notification bell
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    booking = db.relationship('Booking', backref='activity_logs', lazy=True)
+
+    # Action types
+    ACTION_TYPES = {
+        'booking_created': 'New Booking',
+        'booking_cancelled': 'Booking Cancelled',
+        'booking_completed': 'Booking Completed',
+        'booking_no_show': 'No Show',
+        'booking_rescheduled': 'Booking Rescheduled',
+        'client_note_added': 'Client Note Added',
+        'client_note_updated': 'Client Note Updated',
+        'service_created': 'Service Created',
+        'service_updated': 'Service Updated',
+        'service_deleted': 'Service Deleted',
+        'category_created': 'Category Created',
+        'category_updated': 'Category Updated',
+        'staff_login': 'Staff Login',
+        'owner_login': 'Owner Login',
+    }
+
+    @classmethod
+    def log(cls, action_type, description, admin_user_id=None, booking_id=None, client_email=None, details=None):
+        """Create a new activity log entry"""
+        log_entry = cls(
+            admin_user_id=admin_user_id,
+            action_type=action_type,
+            description=description,
+            booking_id=booking_id,
+            client_email=client_email,
+            details=details
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        return log_entry
+
+    def get_icon(self):
+        """Get icon for this action type"""
+        icons = {
+            'booking_created': '📅',
+            'booking_cancelled': '❌',
+            'booking_completed': '✅',
+            'booking_no_show': '👻',
+            'booking_rescheduled': '🔄',
+            'client_note_added': '📝',
+            'client_note_updated': '✏️',
+            'service_created': '➕',
+            'service_updated': '🔧',
+            'service_deleted': '🗑️',
+            'category_created': '📁',
+            'category_updated': '📂',
+            'staff_login': '👤',
+            'owner_login': '👑',
+        }
+        return icons.get(self.action_type, '📋')
+
+    def __repr__(self):
+        return f'<ActivityLog {self.action_type} at {self.created_at}>'

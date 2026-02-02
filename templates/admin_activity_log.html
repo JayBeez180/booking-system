@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Log{% endblock %}
+
+{% block content %}
+<style>
+    .activity-item {
+        display: flex;
+        gap: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        align-items: flex-start;
+    }
+
+    .activity-item:hover {
+        background: #e9ecef;
+    }
+
+    .activity-icon {
+        font-size: 24px;
+        flex-shrink: 0;
+        width: 40px;
+        text-align: center;
+    }
+
+    .activity-content {
+        flex: 1;
+    }
+
+    .activity-description {
+        color: #2c3e50;
+        margin: 0 0 5px 0;
+    }
+
+    .activity-meta {
+        color: #999;
+        font-size: 13px;
+    }
+
+    .activity-meta span {
+        margin-right: 15px;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 30px;
+    }
+
+    .pagination a, .pagination span {
+        padding: 8px 15px;
+        border-radius: 4px;
+        text-decoration: none;
+    }
+
+    .pagination a {
+        background: #3498db;
+        color: white;
+    }
+
+    .pagination a:hover {
+        background: #2980b9;
+    }
+
+    .pagination span.current {
+        background: #2c3e50;
+        color: white;
+    }
+
+    .pagination span.disabled {
+        background: #e9ecef;
+        color: #999;
+    }
+
+    .filter-bar {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .filter-bar select {
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        width: auto;
+        margin: 0;
+    }
+</style>
+
+<h1>Activity Log</h1>
+
+<p style="color: #666; margin-bottom: 20px;">Complete history of all actions taken in the system.</p>
+
+{% if activities.items %}
+    {% for activity in activities.items %}
+    <div class="activity-item">
+        <div class="activity-icon">{{ activity.get_icon() }}</div>
+        <div class="activity-content">
+            <p class="activity-description">{{ activity.description }}</p>
+            <div class="activity-meta">
+                <span>{{ activity.created_at.strftime('%d %b %Y at %H:%M') }}</span>
+                {% if activity.admin_user %}
+                <span>by {{ activity.admin_user.name }}</span>
+                {% else %}
+                <span>by Customer (online booking)</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Pagination -->
+    {% if activities.pages > 1 %}
+    <div class="pagination">
+        {% if activities.has_prev %}
+            <a href="{{ url_for('activity_log_page', page=activities.prev_num) }}">Previous</a>
+        {% else %}
+            <span class="disabled">Previous</span>
+        {% endif %}
+
+        <span class="current">Page {{ activities.page }} of {{ activities.pages }}</span>
+
+        {% if activities.has_next %}
+            <a href="{{ url_for('activity_log_page', page=activities.next_num) }}">Next</a>
+        {% else %}
+            <span class="disabled">Next</span>
+        {% endif %}
+    </div>
+    {% endif %}
+{% else %}
+    <div style="text-align: center; padding: 50px; color: #999;">
+        <p style="font-size: 48px; margin-bottom: 10px;">📋</p>
+        <p>No activity recorded yet.</p>
+    </div>
+{% endif %}
+
+{% endblock %}
