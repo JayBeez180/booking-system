@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Add Availability{% endblock %}
+
+{% block content %}
+    <h1>Add Working Hours</h1>
+
+    <form method="POST">
+        <label>Day of Week:</label>
+        <select name="day_of_week" required>
+            <option value="0">Monday</option>
+            <option value="1">Tuesday</option>
+            <option value="2">Wednesday</option>
+            <option value="3">Thursday</option>
+            <option value="4">Friday</option>
+            <option value="5">Saturday</option>
+            <option value="6">Sunday</option>
+        </select>
+
+        <label>Start Time:</label>
+        <input type="time" name="start_time" required value="09:00">
+
+        <label>End Time:</label>
+        <input type="time" name="end_time" required value="17:00">
+
+        <button type="submit" class="btn-success">Add Availability</button>
+    </form>
+
+    <br>
+    <a href="/admin/availability">&larr; Back to Availability</a>
+{% endblock %}

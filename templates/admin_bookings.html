@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}View Bookings{% endblock %}
+
+{% block content %}
+    <h1>All Bookings</h1>
+
+    {% if bookings %}
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Service</th>
+                <th>Customer</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th class="actions">Actions</th>
+            </tr>
+            {% for booking in bookings %}
+            <tr>
+                <td><strong>{{ booking.booking_date }}</strong></td>
+                <td>{{ booking.booking_time }}{% if booking.end_time %} - {{ booking.end_time }}{% endif %}</td>
+                <td>{{ booking.service.name }}</td>
+                <td>{{ booking.customer_name }}</td>
+                <td>
+                    <small>{{ booking.customer_email }}</small>
+                    {% if booking.customer_phone %}<br><small>{{ booking.customer_phone }}</small>{% endif %}
+                </td>
+                <td>
+                    {% if booking.status == 'confirmed' %}
+                        <span class="badge badge-success">Confirmed</span>
+                    {% elif booking.status == 'cancelled' %}
+                        <span class="badge badge-danger">Cancelled</span>
+                    {% elif booking.status == 'no_show' %}
+                        <span class="badge badge-warning">No-Show</span>
+                    {% elif booking.status == 'completed' %}
+                        <span class="badge badge-success">Completed</span>
+                    {% else %}
+                        <span class="badge">{{ booking.status }}</span>
+                    {% endif %}
+                </td>
+                <td class="actions">
+                    {% if booking.status == 'confirmed' %}
+                        <form method="POST" action="/admin/bookings/no-show/{{ booking.id }}" style="display: inline;" onsubmit="return confirm('Mark this booking as a no-show?');">
+                            <button type="submit" class="btn btn-small btn-warning">No-Show</button>
+                        </form>
+                        <form method="POST" action="/admin/bookings/cancel/{{ booking.id }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this booking?');">
+                            <button type="submit" class="btn btn-small btn-danger">Cancel</button>
+                        </form>
+                    {% elif booking.status == 'completed' %}
+                        <form method="POST" action="/admin/bookings/no-show/{{ booking.id }}" style="display: inline;" onsubmit="return confirm('Mark this completed appointment as a no-show?');">
+                            <button type="submit" class="btn btn-small btn-warning">Mark No-Show</button>
+                        </form>
+                    {% elif booking.status == 'no_show' %}
+                        <form method="POST" action="/admin/bookings/undo-no-show/{{ booking.id }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small">Undo</button>
+                        </form>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No bookings yet. Share your booking link to start receiving appointments!</p>
+        <p style="margin-top: 20px;">
+            <strong>Customer booking page:</strong> <a href="/book">/book</a>
+        </p>
+    {% endif %}
+{% endblock %}

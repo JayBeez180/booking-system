@@ -1,0 +1,991 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar - {{ title }}{% endblock %}
+
+{% block content %}
+<style>
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .calendar-nav {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .calendar-nav a {
+        padding: 8px 15px;
+        background: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+
+    .calendar-nav a:hover {
+        background: #2980b9;
+    }
+
+    .calendar-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #2c3e50;
+    }
+
+    .view-toggle {
+        display: flex;
+        gap: 5px;
+    }
+
+    .view-toggle a {
+        padding: 8px 15px;
+        background: #ecf0f1;
+        color: #2c3e50;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+
+    .view-toggle a:hover {
+        background: #bdc3c7;
+    }
+
+    .view-toggle a.active {
+        background: #2c3e50;
+        color: white;
+    }
+
+    /* Month/Week Grid Styles */
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px;
+        background: #ddd;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .calendar-day-header {
+        background: #2c3e50;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .calendar-day {
+        background: white;
+        min-height: 120px;
+        padding: 8px;
+        vertical-align: top;
+        cursor: pointer;
+    }
+
+    .calendar-day:hover {
+        background: #f0f7ff;
+    }
+
+    .calendar-day.other-month {
+        background: #f8f9fa;
+    }
+
+    .calendar-day.other-month:hover {
+        background: #eef1f4;
+    }
+
+    .calendar-day.other-month .day-number {
+        color: #aaa;
+    }
+
+    .calendar-day.today {
+        background: #e8f4fd;
+    }
+
+    .calendar-day.fully-blocked {
+        background: #ffeaea;
+    }
+
+    .day-number {
+        font-weight: bold;
+        font-size: 14px;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+
+    .day-number.today {
+        background: #3498db;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .calendar-event {
+        font-size: 11px;
+        padding: 3px 5px;
+        margin-bottom: 3px;
+        border-radius: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .calendar-event:hover {
+        opacity: 0.9;
+        transform: scale(1.02);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .calendar-event.booking:hover {
+        opacity: 1;
+    }
+
+    .calendar-event.booking {
+        background: #27ae60;
+        color: white;
+    }
+
+    /* Category colour coding */
+    .calendar-event.booking.cat-nose { background: #e67e22; } /* Orange */
+    .calendar-event.booking.cat-ears { background: #2ecc71; } /* Light green */
+    .calendar-event.booking.cat-under-16s { background: #1e8449; } /* Dark green */
+    .calendar-event.booking.cat-service { background: #f1c40f; color: #333; } /* Yellow - jewellery change */
+    .calendar-event.booking.cat-consultation { background: #85c1e9; color: #333; } /* Light blue - ear curation */
+    .calendar-event.booking.cat-body { background: #2874a6; } /* Dark blue - nipples/navels */
+    .calendar-event.booking.cat-lips { background: #8e44ad; } /* Purple */
+    .calendar-event.booking.cat-face { background: #d35400; } /* Darker orange for face */
+    .calendar-event.booking.cat-other { background: #7f8c8d; } /* Grey for other */
+
+    .calendar-event.booking.no-show {
+        opacity: 0.6;
+        text-decoration: line-through;
+    }
+
+    .calendar-event.booking.cancelled {
+        background: #95a5a6;
+        text-decoration: line-through;
+    }
+
+    .calendar-event.blocked {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .calendar-event.blocked.recurring {
+        background: #9b59b6;
+    }
+
+    .calendar-event.all-day {
+        background: #e74c3c;
+        color: white;
+        font-weight: bold;
+    }
+
+    .event-time {
+        font-weight: bold;
+    }
+
+    .more-events {
+        font-size: 11px;
+        color: #666;
+        text-align: center;
+        padding: 2px;
+    }
+
+    /* Week view specific styles */
+    .week-view .calendar-day {
+        min-height: 200px;
+    }
+
+    /* Day View Styles */
+    .day-view-container {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .day-view-header {
+        background: #2c3e50;
+        color: white;
+        padding: 15px 20px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .time-slots-container {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .time-slot {
+        display: flex;
+        border-bottom: 1px solid #eee;
+        min-height: 30px;
+    }
+
+    /* Add subtle visual distinction for hour boundaries */
+    .time-slot.hour-start {
+        border-top: 2px solid #ddd;
+    }
+
+    .time-slot:last-child {
+        border-bottom: none;
+    }
+
+    .time-slot-time {
+        width: 80px;
+        padding: 5px 10px;
+        background: #f8f9fa;
+        font-weight: 600;
+        font-size: 12px;
+        color: #666;
+        border-right: 1px solid #eee;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .time-slot-content {
+        flex: 1;
+        padding: 4px 12px;
+        position: relative;
+        cursor: pointer;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+    }
+
+    .time-slot-content:hover {
+        background: #f0f7ff;
+    }
+
+    .time-slot-content.has-booking {
+        background: #e8f5e9;
+        cursor: pointer;
+    }
+
+    .time-slot-content.has-booking:hover {
+        background: #d7eed9;
+    }
+
+    .time-slot-content.is-blocked {
+        background: #ffebee;
+        cursor: default;
+    }
+
+    .time-slot-content.is-blocked:hover {
+        background: #ffebee;
+    }
+
+    .time-slot-content.no-show {
+        background: #fff3e0;
+    }
+
+    .slot-booking {
+        padding: 3px 8px;
+        background: #27ae60;
+        color: white;
+        border-radius: 4px;
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    /* Category colour coding for day view slots */
+    .slot-booking.cat-nose { background: #e67e22; }
+    .slot-booking.cat-ears { background: #2ecc71; }
+    .slot-booking.cat-under-16s { background: #1e8449; }
+    .slot-booking.cat-service { background: #f1c40f; color: #333; }
+    .slot-booking.cat-consultation { background: #85c1e9; color: #333; }
+    .slot-booking.cat-body { background: #2874a6; }
+    .slot-booking.cat-lips { background: #8e44ad; }
+    .slot-booking.cat-face { background: #d35400; }
+    .slot-booking.cat-other { background: #7f8c8d; }
+
+    .slot-booking.no-show {
+        opacity: 0.6;
+        text-decoration: line-through;
+    }
+
+    .slot-booking .customer-name {
+        font-weight: 600;
+    }
+
+    .slot-booking .service-name {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+    /* Note indicator for bookings */
+    .note-indicator {
+        display: inline-block;
+        font-size: 10px;
+        margin-left: 4px;
+        vertical-align: middle;
+    }
+
+    .calendar-event .note-indicator {
+        font-size: 9px;
+    }
+
+    .slot-blocked {
+        padding: 3px 8px;
+        background: #e74c3c;
+        color: white;
+        border-radius: 4px;
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    .slot-blocked.recurring {
+        background: #9b59b6;
+    }
+
+    .slot-add-btn {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .time-slot-content:hover .slot-add-btn {
+        opacity: 1;
+    }
+
+    .time-slot-content.has-booking .slot-add-btn,
+    .time-slot-content.is-blocked .slot-add-btn {
+        display: none;
+    }
+
+    /* Legend */
+    .calendar-legend {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        flex-wrap: wrap;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+    }
+
+    .legend-color.booking {
+        background: #27ae60;
+    }
+
+    .legend-color.no-show {
+        background: #f39c12;
+    }
+
+    .legend-color.blocked {
+        background: #e74c3c;
+    }
+
+    .legend-color.recurring {
+        background: #9b59b6;
+    }
+
+    /* Action Modal */
+    .action-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .action-modal.show {
+        display: flex;
+    }
+
+    .action-modal-content {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        max-width: 450px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .action-modal h2 {
+        margin-top: 0;
+        color: #2c3e50;
+        font-size: 20px;
+    }
+
+    .action-modal-close {
+        float: right;
+        font-size: 24px;
+        cursor: pointer;
+        color: #666;
+    }
+
+    .action-modal-close:hover {
+        color: #333;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .action-buttons .btn {
+        flex: 1;
+        text-align: center;
+        padding: 15px;
+        font-size: 15px;
+    }
+
+    .quick-block-options {
+        margin-top: 15px;
+    }
+
+    .quick-block-options label {
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    .quick-block-options select,
+    .quick-block-options input {
+        margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .calendar-day-header {
+            font-size: 12px;
+            padding: 5px;
+        }
+
+        .calendar-day {
+            min-height: 80px;
+            padding: 4px;
+        }
+
+        .day-number {
+            font-size: 12px;
+        }
+
+        .calendar-event {
+            font-size: 10px;
+            padding: 2px 3px;
+        }
+
+        .time-slot-time {
+            width: 60px;
+            font-size: 11px;
+        }
+    }
+</style>
+
+<div class="calendar-header">
+    <div class="calendar-nav">
+        <a href="?view={{ view }}&date={{ prev_date }}">&larr; Previous</a>
+        <span class="calendar-title">{{ title }}</span>
+        <a href="?view={{ view }}&date={{ next_date }}">Next &rarr;</a>
+    </div>
+
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="?view={{ view }}&date={{ today.isoformat() }}" class="btn btn-small">Today</a>
+        <div class="view-toggle">
+            <a href="?view=day&date={{ current_date.isoformat() }}" class="{% if view == 'day' %}active{% endif %}">Day</a>
+            <a href="?view=week&date={{ current_date.isoformat() }}" class="{% if view == 'week' %}active{% endif %}">Week</a>
+            <a href="?view=month&date={{ current_date.isoformat() }}" class="{% if view == 'month' %}active{% endif %}">Month</a>
+        </div>
+    </div>
+</div>
+
+{% if view == 'day' %}
+<!-- Day View with Time Slots -->
+<div class="day-view-container">
+    <div class="day-view-header">
+        {{ current_date.strftime('%A, %d %B %Y') }}
+        {% if day_data.is_fully_blocked %}
+            <span style="background: #e74c3c; padding: 3px 10px; border-radius: 4px; font-size: 12px; margin-left: 10px;">DAY BLOCKED</span>
+        {% endif %}
+    </div>
+
+    <div class="time-slots-container">
+        {% for slot in time_slots %}
+        <div class="time-slot {% if slot.time.endswith(':00') %}hour-start{% endif %}">
+            <div class="time-slot-time">{{ slot.time }}</div>
+            <div class="time-slot-content
+                {% if slot.booking %}has-booking{% if slot.booking.status == 'no_show' %} no-show{% endif %}{% endif %}
+                {% if slot.blocked %}is-blocked{% endif %}"
+                {% if not slot.booking and not slot.blocked %}
+                onclick="openActionModal('{{ current_date.isoformat() }}', '{{ slot.time }}')"
+                {% endif %}>
+
+                {% if slot.booking %}
+                    <div class="slot-booking cat-{{ slot.booking.category | replace(' ', '-') }} {% if slot.booking.status == 'no_show' %}no-show{% endif %}"
+                         style="cursor: pointer;"
+                         onclick="openEditModal({{ slot.booking.id }}, '{{ slot.booking.customer | e }}', '{{ slot.booking.service | e }}', '{{ slot.booking.time }}', '{{ slot.booking.end_time }}', '{{ current_date.isoformat() }}', '{{ slot.booking.status }}', '{{ slot.booking.email | e }}')">
+                        <span class="customer-name">{{ slot.booking.customer }}</span>
+                        {% if slot.booking.has_notes %}<span class="note-indicator" title="Has staff notes">📝</span>{% endif %}
+                        {% if slot.booking.status == 'no_show' %}<span style="font-size: 10px; margin-left: 5px;">(NO-SHOW)</span>{% endif %}
+                        {% if slot.booking.status == 'completed' %}<span style="font-size: 10px; margin-left: 5px;">(COMPLETED)</span>{% endif %}
+                        <br>
+                        <span class="service-name">{{ slot.booking.service }} ({{ slot.booking.time }} - {{ slot.booking.end_time }})</span>
+                    </div>
+                {% elif slot.blocked %}
+                    <div class="slot-blocked {% if slot.blocked.is_recurring %}recurring{% endif %}">
+                        {{ slot.blocked.reason or 'Blocked' }}
+                        {% if slot.blocked.is_recurring %}(Recurring){% endif %}
+                        <br>
+                        <span style="font-size: 11px;">{{ slot.blocked.start_time }} - {{ slot.blocked.end_time }}</span>
+                    </div>
+                {% else %}
+                    <span class="slot-add-btn btn btn-small" style="font-size: 11px;">+ Add</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% else %}
+<!-- Week/Month Grid View -->
+<div class="calendar-grid {% if view == 'week' %}week-view{% endif %}">
+    {% for day_name in days_of_week %}
+        <div class="calendar-day-header">{{ day_name[:3] }}</div>
+    {% endfor %}
+
+    {% for day in calendar_data %}
+        <div class="calendar-day {% if not day.is_current_month %}other-month{% endif %} {% if day.is_today %}today{% endif %} {% if day.is_fully_blocked %}fully-blocked{% endif %}"
+             onclick="window.location.href='?view=day&date={{ day.date.isoformat() }}'">
+            <div class="day-number {% if day.is_today %}today{% endif %}">
+                {{ day.date.day }}
+            </div>
+
+            {% if day.is_fully_blocked %}
+                <div class="calendar-event all-day">
+                    {% for block in day.blocked_times if block.is_all_day %}
+                        {{ block.reason or 'Blocked' }}{% if loop.first %}{% endif %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                {% set max_display = 3 if view == 'month' else 10 %}
+
+                {% for block in day.blocked_times if not block.is_all_day %}
+                    <div class="calendar-event blocked {% if block.is_recurring %}recurring{% endif %}">
+                        <span class="event-time">{{ block.start_time }}</span>
+                        {{ block.reason or 'Blocked' }}
+                    </div>
+                {% endfor %}
+
+                {% for booking in day.bookings %}
+                    <div class="calendar-event booking cat-{{ booking.category | replace(' ', '-') }} {% if booking.status == 'no_show' %}no-show{% elif booking.status == 'cancelled' %}cancelled{% endif %}"
+                         onclick="event.stopPropagation(); openEditModal({{ booking.id }}, '{{ booking.customer | e }}', '{{ booking.service | e }}', '{{ booking.time }}', '{{ booking.end_time }}', '{{ day.date.isoformat() }}', '{{ booking.status }}', '{{ booking.email | e }}')">
+                        <span class="event-time">{{ booking.time }}</span>
+                        {{ booking.customer.split(' ')[0] }}{% if booking.has_notes %}<span class="note-indicator" title="Has staff notes">📝</span>{% endif %}
+                    </div>
+                {% endfor %}
+
+                {% set total_events = day.bookings | length + day.blocked_times | selectattr('is_all_day', 'false') | list | length %}
+                {% if total_events > max_display %}
+                    <div class="more-events">+{{ total_events - max_display }} more</div>
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="calendar-legend">
+    <div class="legend-item">
+        <div class="legend-color" style="background: #e67e22;"></div>
+        <span>Nose</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #2ecc71;"></div>
+        <span>Ears</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #1e8449;"></div>
+        <span>Under 16s</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #f1c40f;"></div>
+        <span>Jewellery</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #85c1e9;"></div>
+        <span>Consultation</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #2874a6;"></div>
+        <span>Body</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color" style="background: #8e44ad;"></div>
+        <span>Lips</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color blocked"></div>
+        <span>Blocked</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-color recurring"></div>
+        <span>Recurring</span>
+    </div>
+    <div style="margin-left: auto; color: #666; font-size: 13px;">
+        {% if view != 'day' %}
+        <em>Click on a day to view time slots</em>
+        {% else %}
+        <em>Click on empty slot to add booking or block time</em>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Edit Booking Modal -->
+<div id="editModal" class="action-modal" onclick="if(event.target === this) closeEditModal()">
+    <div class="action-modal-content" style="max-width: 500px;">
+        <span class="action-modal-close" onclick="closeEditModal()">&times;</span>
+        <h2 id="editModalTitle" style="margin-bottom: 5px;">Edit Appointment</h2>
+        <p id="editModalSubtitle" style="color: #666; margin-bottom: 20px;"></p>
+
+        <!-- Client Notes Alert (shown if alerts exist) -->
+        <div id="clientNotesAlert" style="display: none; background: #fff3cd; border: 1px solid #f1c40f; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px;">
+            <div style="display: flex; align-items: start; gap: 10px;">
+                <span style="font-size: 18px;">⚠️</span>
+                <div style="flex: 1;">
+                    <strong style="color: #856404;">Staff Notes:</strong>
+                    <div id="clientNotesContent" style="margin-top: 5px; font-size: 14px; color: #856404;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Details -->
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="display: grid; gap: 10px;">
+                <div><strong>Customer:</strong> <span id="editCustomer"></span></div>
+                <div><strong>Service:</strong> <span id="editService"></span></div>
+                <div><strong>Date:</strong> <span id="editDate"></span></div>
+                <div><strong>Time:</strong> <span id="editTime"></span></div>
+                <div><strong>Status:</strong> <span id="editStatus"></span></div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: grid; gap: 10px;">
+            <a id="moveBookingBtn" href="#" class="btn" style="background: #3498db; text-align: center;">
+                📅 Move/Reschedule
+            </a>
+
+            <div id="noShowBtnContainer">
+                <form id="noShowForm" method="POST" style="margin: 0;">
+                    <button type="submit" class="btn" style="background: #f39c12; width: 100%;">
+                        ⚠️ Mark as No-Show
+                    </button>
+                </form>
+            </div>
+
+            <div id="undoNoShowBtnContainer" style="display: none;">
+                <form id="undoNoShowForm" method="POST" style="margin: 0;">
+                    <button type="submit" class="btn" style="background: #27ae60; width: 100%;">
+                        ✓ Undo No-Show
+                    </button>
+                </form>
+            </div>
+
+            <div id="cancelBtnContainer">
+                <form id="cancelForm" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                    <button type="submit" class="btn" style="background: #e74c3c; width: 100%;">
+                        ✕ Cancel Appointment
+                    </button>
+                </form>
+            </div>
+
+            <div id="markCompletedBtnContainer" style="display: none;">
+                <form id="markCompletedForm" method="POST" style="margin: 0;">
+                    <button type="submit" class="btn" style="background: #27ae60; width: 100%;">
+                        ✓ Mark as Completed
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+
+        <!-- Email Controls -->
+        <div id="emailControlsSection" style="background: #f0e6ff; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="color: #6c3483; font-size: 13px;">📧 24hr Follow-up Email</strong>
+                    <div id="emailStatusText" style="font-size: 12px; color: #666; margin-top: 3px;"></div>
+                </div>
+                <form id="toggleDayAfterForm" method="POST" style="margin: 0;">
+                    <button type="submit" id="toggleDayAfterBtn" class="btn btn-small" style="font-size: 12px; padding: 5px 12px;"></button>
+                </form>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a id="viewIntakeBtn" href="#" class="btn btn-small" style="background: #9b59b6; flex: 1; text-align: center;">
+                View Intake Form
+            </a>
+            <a id="viewClientBtn" href="#" class="btn btn-small" style="background: #34495e; flex: 1; text-align: center;">
+                View Client
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Action Modal for Adding Booking or Block -->
+<div id="actionModal" class="action-modal" onclick="if(event.target === this) closeActionModal()">
+    <div class="action-modal-content">
+        <span class="action-modal-close" onclick="closeActionModal()">&times;</span>
+        <h2 id="actionModalTitle">Add to <span id="actionModalTime"></span></h2>
+
+        <p style="color: #666; margin-bottom: 20px;">What would you like to do with this time slot?</p>
+
+        <div class="action-buttons">
+            <a id="addBookingBtn" href="#" class="btn" style="background: #27ae60;">
+                + Add Booking
+            </a>
+            <button type="button" class="btn" style="background: #e74c3c;" onclick="showBlockForm()">
+                Block Time
+            </button>
+        </div>
+
+        <!-- Quick Block Form -->
+        <div id="quickBlockForm" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+            <h3 style="margin-top: 0; font-size: 16px;">Quick Block</h3>
+            <form method="POST" action="/admin/blocked-times/add-quick">
+                <input type="hidden" name="date" id="blockDate">
+                <input type="hidden" name="start_time" id="blockStartTime">
+                <input type="hidden" name="redirect" value="calendar">
+
+                <div class="quick-block-options">
+                    <label>Duration:</label>
+                    <select name="duration" style="width: 100%;">
+                        <option value="30">30 minutes</option>
+                        <option value="60" selected>1 hour</option>
+                        <option value="90">1.5 hours</option>
+                        <option value="120">2 hours</option>
+                        <option value="180">3 hours</option>
+                        <option value="all_day">Rest of day</option>
+                    </select>
+
+                    <label>Reason (optional):</label>
+                    <input type="text" name="reason" placeholder="e.g., Lunch, Break, Meeting..." style="width: 100%;">
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <button type="submit" class="btn" style="background: #e74c3c; width: 100%;">Block This Time</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedDate = '';
+    let selectedTime = '';
+    let currentBookingId = null;
+
+    function openActionModal(date, time) {
+        selectedDate = date;
+        selectedTime = time;
+
+        const dateObj = new Date(date);
+        const options = { weekday: 'short', day: 'numeric', month: 'short' };
+        const formattedDate = dateObj.toLocaleDateString('en-GB', options);
+
+        document.getElementById('actionModalTime').textContent = `${formattedDate} at ${time}`;
+        document.getElementById('addBookingBtn').href = `/admin/booking/add?date=${date}&time=${time}`;
+        document.getElementById('blockDate').value = date;
+        document.getElementById('blockStartTime').value = time;
+        document.getElementById('quickBlockForm').style.display = 'none';
+        document.getElementById('actionModal').classList.add('show');
+    }
+
+    function closeActionModal() {
+        document.getElementById('actionModal').classList.remove('show');
+    }
+
+    function showBlockForm() {
+        document.getElementById('quickBlockForm').style.display = 'block';
+    }
+
+    function openEditModal(bookingId, customer, service, time, endTime, date, status, email) {
+        currentBookingId = bookingId;
+
+        const dateObj = new Date(date);
+        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        const formattedDate = dateObj.toLocaleDateString('en-GB', options);
+
+        document.getElementById('editCustomer').textContent = customer;
+        document.getElementById('editService').textContent = service;
+        document.getElementById('editDate').textContent = formattedDate;
+        document.getElementById('editTime').textContent = `${time} - ${endTime}`;
+
+        // Status display
+        let statusText = status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
+        let statusColor = '#27ae60';
+        if (status === 'no_show') {
+            statusText = 'No-Show';
+            statusColor = '#f39c12';
+        } else if (status === 'cancelled') {
+            statusText = 'Cancelled';
+            statusColor = '#e74c3c';
+        } else if (status === 'completed') {
+            statusText = 'Completed';
+            statusColor = '#27ae60';
+        }
+        document.getElementById('editStatus').innerHTML = `<span style="color: ${statusColor}; font-weight: 600;">${statusText}</span>`;
+
+        // Fetch and display client notes
+        const notesAlert = document.getElementById('clientNotesAlert');
+        const notesContent = document.getElementById('clientNotesContent');
+        notesAlert.style.display = 'none';
+        notesContent.innerHTML = '';
+
+        if (email) {
+            fetch(`/admin/client-notes/${encodeURIComponent(email)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.notes && data.notes.length > 0) {
+                        // Show notes - prioritize alerts but show all
+                        let notesHtml = '';
+                        data.notes.forEach(note => {
+                            if (note.is_alert) {
+                                notesHtml += `<div style="margin-bottom: 8px;"><strong style="color: #e74c3c;">⚠️ ${note.note}</strong></div>`;
+                            } else {
+                                notesHtml += `<div style="margin-bottom: 8px;">${note.note}</div>`;
+                            }
+                        });
+                        notesContent.innerHTML = notesHtml;
+                        notesAlert.style.display = 'block';
+                    }
+                })
+                .catch(err => console.log('Could not fetch client notes:', err));
+        }
+
+        // Set form actions
+        document.getElementById('moveBookingBtn').href = `/admin/booking/move/${bookingId}`;
+        document.getElementById('noShowForm').action = `/admin/bookings/no-show/${bookingId}`;
+        document.getElementById('undoNoShowForm').action = `/admin/bookings/undo-no-show/${bookingId}`;
+        document.getElementById('cancelForm').action = `/admin/bookings/cancel/${bookingId}`;
+        document.getElementById('markCompletedForm').action = `/admin/bookings/complete/${bookingId}`;
+        document.getElementById('viewIntakeBtn').href = `/admin/intake-forms?booking_id=${bookingId}`;
+        document.getElementById('viewClientBtn').href = `/admin/clients?search=${encodeURIComponent(customer)}`;
+
+        // Show/hide buttons based on status
+        const noShowBtn = document.getElementById('noShowBtnContainer');
+        const undoNoShowBtn = document.getElementById('undoNoShowBtnContainer');
+        const cancelBtn = document.getElementById('cancelBtnContainer');
+        const completeBtn = document.getElementById('markCompletedBtnContainer');
+        const moveBtn = document.getElementById('moveBookingBtn');
+
+        if (status === 'no_show') {
+            noShowBtn.style.display = 'none';
+            undoNoShowBtn.style.display = 'block';
+            cancelBtn.style.display = 'none';
+            completeBtn.style.display = 'none';
+            moveBtn.style.display = 'none';
+        } else if (status === 'cancelled') {
+            noShowBtn.style.display = 'none';
+            undoNoShowBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            completeBtn.style.display = 'none';
+            moveBtn.style.display = 'none';
+        } else if (status === 'completed') {
+            noShowBtn.style.display = 'block';
+            undoNoShowBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            completeBtn.style.display = 'none';
+            moveBtn.style.display = 'none';
+        } else {
+            // confirmed
+            noShowBtn.style.display = 'block';
+            undoNoShowBtn.style.display = 'none';
+            cancelBtn.style.display = 'block';
+            completeBtn.style.display = 'block';
+            moveBtn.style.display = 'block';
+        }
+
+        // Set up email controls
+        document.getElementById('toggleDayAfterForm').action = `/admin/booking/toggle-day-after-block/${bookingId}`;
+
+        // Fetch email status
+        fetch(`/api/booking/${bookingId}/email-status`)
+            .then(response => response.json())
+            .then(data => {
+                const emailSection = document.getElementById('emailControlsSection');
+                const statusText = document.getElementById('emailStatusText');
+                const toggleBtn = document.getElementById('toggleDayAfterBtn');
+
+                if (data.day_after_sent) {
+                    statusText.textContent = '✓ Email already sent';
+                    toggleBtn.style.display = 'none';
+                } else if (data.day_after_blocked) {
+                    statusText.textContent = '🚫 Blocked from sending';
+                    toggleBtn.textContent = 'Unblock';
+                    toggleBtn.style.background = '#27ae60';
+                    toggleBtn.style.display = 'inline-block';
+                } else {
+                    statusText.textContent = '⏳ Will send 24hrs after completion';
+                    toggleBtn.textContent = 'Block';
+                    toggleBtn.style.background = '#e74c3c';
+                    toggleBtn.style.display = 'inline-block';
+                }
+
+                // Hide for cancelled/no-show
+                if (status === 'cancelled' || status === 'no_show') {
+                    emailSection.style.display = 'none';
+                } else {
+                    emailSection.style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.log('Could not fetch email status:', err);
+                document.getElementById('emailControlsSection').style.display = 'none';
+            });
+
+        document.getElementById('editModal').classList.add('show');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('show');
+    }
+
+    // Close on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeActionModal();
+            closeEditModal();
+        }
+    });
+</script>
+{% endblock %}

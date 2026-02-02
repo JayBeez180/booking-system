@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}Move Booking{% endblock %}
+
+{% block content %}
+<style>
+    .booking-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        border-left: 4px solid #3498db;
+    }
+
+    .booking-card h3 {
+        margin-top: 0;
+        color: #2c3e50;
+    }
+
+    .booking-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .detail-item {
+        padding: 10px;
+        background: white;
+        border-radius: 4px;
+    }
+
+    .detail-label {
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+
+    .detail-value {
+        font-size: 16px;
+        color: #2c3e50;
+        font-weight: 600;
+    }
+
+    .move-form {
+        max-width: 500px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .time-slots {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .time-slot-btn {
+        padding: 12px;
+        background: #ecf0f1;
+        border: 2px solid transparent;
+        border-radius: 6px;
+        cursor: pointer;
+        text-align: center;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .time-slot-btn:hover {
+        background: #d5dbdb;
+    }
+
+    .time-slot-btn.selected {
+        background: #3498db;
+        color: white;
+        border-color: #2980b9;
+    }
+
+    .time-slot-btn.disabled {
+        background: #f5f5f5;
+        color: #bbb;
+        cursor: not-allowed;
+        text-decoration: line-through;
+    }
+
+    .time-slot-btn.current-time {
+        background: #fff3cd;
+        border: 2px solid #f1c40f;
+    }
+
+    .time-slot-btn.current-time.selected {
+        background: #3498db;
+        border-color: #2980b9;
+    }
+
+    .current-slot {
+        background: #fff3cd;
+        border: 2px solid #f1c40f;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .arrow-icon {
+        font-size: 24px;
+        color: #27ae60;
+        margin: 0 15px;
+    }
+
+    .change-preview {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: #f0f9ff;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+
+    .change-box {
+        padding: 15px 25px;
+        background: white;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .change-box.from {
+        border: 2px solid #e74c3c;
+    }
+
+    .change-box.to {
+        border: 2px solid #27ae60;
+    }
+
+    .change-label {
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .change-value {
+        font-size: 16px;
+        font-weight: 600;
+    }
+</style>
+
+<h1>Edit Booking</h1>
+<p><a href="{{ url_for('admin_calendar') }}">&larr; Back to Calendar</a></p>
+
+<div class="booking-card">
+    <h3>Current Booking Details</h3>
+    <div class="booking-details">
+        <div class="detail-item">
+            <div class="detail-label">Customer</div>
+            <div class="detail-value">{{ booking.customer_name }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Service</div>
+            <div class="detail-value">{{ service.name if service else 'Unknown' }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Current Date</div>
+            <div class="detail-value">{{ booking.booking_date.strftime('%A, %d %B %Y') }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Current Time</div>
+            <div class="detail-value">{{ booking.booking_time }} - {{ booking.end_time }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Duration</div>
+            <div class="detail-value" id="currentDuration">{{ service.duration_minutes if service else 30 }} minutes</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Contact</div>
+            <div class="detail-value">{{ booking.customer_email }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Extend Appointment Section -->
+<div class="booking-card" style="border-left-color: #27ae60;">
+    <h3>Extend Appointment</h3>
+    <p style="color: #666; margin-bottom: 15px;">Add extra time to this appointment in 15-minute increments.</p>
+
+    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+        <form method="POST" action="{{ url_for('extend_booking', booking_id=booking.id) }}" style="display: flex; align-items: center; gap: 10px; margin: 0;">
+            <input type="hidden" name="extend_minutes" value="15">
+            <button type="submit" class="btn" style="background: #27ae60; margin: 0;">
+                +15 min
+            </button>
+        </form>
+        <form method="POST" action="{{ url_for('extend_booking', booking_id=booking.id) }}" style="display: flex; align-items: center; gap: 10px; margin: 0;">
+            <input type="hidden" name="extend_minutes" value="30">
+            <button type="submit" class="btn" style="background: #27ae60; margin: 0;">
+                +30 min
+            </button>
+        </form>
+        <form method="POST" action="{{ url_for('extend_booking', booking_id=booking.id) }}" style="display: flex; align-items: center; gap: 10px; margin: 0;">
+            <input type="hidden" name="extend_minutes" value="45">
+            <button type="submit" class="btn" style="background: #27ae60; margin: 0;">
+                +45 min
+            </button>
+        </form>
+        <form method="POST" action="{{ url_for('extend_booking', booking_id=booking.id) }}" style="display: flex; align-items: center; gap: 10px; margin: 0;">
+            <input type="hidden" name="extend_minutes" value="60">
+            <button type="submit" class="btn" style="background: #27ae60; margin: 0;">
+                +60 min
+            </button>
+        </form>
+    </div>
+
+    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
+        <p style="color: #666; margin-bottom: 10px; font-size: 14px;">Or reduce the appointment:</p>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <form method="POST" action="{{ url_for('extend_booking', booking_id=booking.id) }}" style="margin: 0;">
+                <input type="hidden" name="extend_minutes" value="-15">
+                <button type="submit" class="btn btn-small" style="background: #e74c3c; margin: 0;">
+                    -15 min
+                </button>
+            </form>
+            <form method="POST" action="{{ url_for('extend_booking', booking_id=booking.id) }}" style="margin: 0;">
+                <input type="hidden" name="extend_minutes" value="-30">
+                <button type="submit" class="btn btn-small" style="background: #e74c3c; margin: 0;">
+                    -30 min
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <p style="color: #888; font-size: 12px; margin-top: 15px; margin-bottom: 0;">
+        <strong>Current end time:</strong> {{ booking.end_time }}
+    </p>
+</div>
+
+<h2>Move/Reschedule</h2>
+<p style="color: #666; margin-bottom: 15px;">Change the date or time of this appointment.</p>
+<!-- Debug: Check browser console (F12) for detailed logs -->
+
+<form method="POST" class="move-form" id="moveForm">
+    <div>
+        <label>New Date</label>
+        <input type="date" name="new_date" id="newDate" required
+               value="{{ booking.booking_date.isoformat() }}"
+               min="{{ today.isoformat() }}">
+    </div>
+
+    <div style="margin-top: 20px;">
+        <label>Available Times</label>
+        <div id="timeSlotsContainer">
+            <p style="color: #666;">Select a date to see available times</p>
+        </div>
+        <input type="hidden" name="new_time" id="newTime" value="{{ booking.booking_time }}">
+    </div>
+
+    <div class="change-preview" id="changePreview">
+        <div class="change-box from">
+            <div class="change-label">From</div>
+            <div class="change-value">
+                {{ booking.booking_date.strftime('%d %b %Y') }}<br>
+                {{ booking.booking_time }}
+            </div>
+        </div>
+        <span class="arrow-icon">&rarr;</span>
+        <div class="change-box to">
+            <div class="change-label">To</div>
+            <div class="change-value" id="newDateTimeDisplay">
+                {{ booking.booking_date.strftime('%d %b %Y') }}<br>
+                {{ booking.booking_time }}
+            </div>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 15px; margin-top: 25px;">
+        <button type="submit" class="btn btn-success" style="flex: 1;" id="submitBtn" disabled>
+            Confirm Move
+        </button>
+        <a href="{{ url_for('admin_calendar', view='day', date=booking.booking_date.isoformat()) }}" class="btn" style="flex: 1; text-align: center; background: #95a5a6;">
+            Cancel
+        </a>
+    </div>
+</form>
+
+<script>
+    console.log('Move booking JS loaded - v2');
+    const newDateInput = document.getElementById('newDate');
+    const newTimeInput = document.getElementById('newTime');
+    const displayDiv = document.getElementById('newDateTimeDisplay');
+    const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+    const submitBtn = document.getElementById('submitBtn');
+    const bookingId = {{ booking.id }};
+    const serviceDuration = {{ service.duration_minutes if service else 30 }};
+    const currentDate = '{{ booking.booking_date.isoformat() }}';
+    const currentTime = '{{ booking.booking_time }}';
+    console.log('Config:', {bookingId, serviceDuration, currentDate, currentTime});
+
+    function updatePreview() {
+        const date = new Date(newDateInput.value);
+        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+        const formattedDate = date.toLocaleDateString('en-GB', options);
+        const time = newTimeInput.value || '--:--';
+
+        displayDiv.innerHTML = `${formattedDate}<br>${time}`;
+    }
+
+    function selectTimeSlot(time, btn) {
+        // Deselect all
+        document.querySelectorAll('.time-slot-btn').forEach(b => b.classList.remove('selected'));
+        // Select this one
+        btn.classList.add('selected');
+        newTimeInput.value = time;
+        submitBtn.disabled = false;
+        updatePreview();
+    }
+
+    async function loadAvailableSlots() {
+        const selectedDate = newDateInput.value;
+        if (!selectedDate) return;
+
+        timeSlotsContainer.innerHTML = '<p style="color: #666;">Loading available times...</p>';
+
+        const url = `/admin/booking/available-slots?date=${selectedDate}&duration=${serviceDuration}&exclude_booking=${bookingId}`;
+        console.log('Fetching slots from:', url);
+
+        try {
+            const response = await fetch(url, {
+                credentials: 'same-origin'  // Include session cookie
+            });
+            console.log('Response status:', response.status);
+
+            // Check if we got a redirect to login (session expired)
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('Response is not JSON. Content-Type:', contentType);
+                timeSlotsContainer.innerHTML = '<p style="color: #e74c3c;">Session may have expired. Please refresh the page.</p>';
+                return;
+            }
+
+            const data = await response.json();
+            console.log('Response data:', data);
+
+            if (data.error) {
+                console.log('API returned error:', data.error);
+                timeSlotsContainer.innerHTML = `<p style="color: #e74c3c;">${data.error}. ${data.message || ''}</p>`;
+                submitBtn.disabled = true;
+                newTimeInput.value = '';
+            } else if (data.slots && data.slots.length > 0) {
+                console.log('Found', data.slots.length, 'slots');
+                let html = '<div class="time-slots">';
+                data.slots.forEach(slot => {
+                    const isCurrentSlot = selectedDate === currentDate && slot.start === currentTime;
+                    const cssClass = isCurrentSlot ? 'time-slot-btn current-time' : 'time-slot-btn';
+                    const label = isCurrentSlot ? `${slot.start} (current)` : slot.start;
+                    html += `<button type="button" class="${cssClass}" onclick="selectTimeSlot('${slot.start}', this)">${label}</button>`;
+                });
+                html += '</div>';
+                timeSlotsContainer.innerHTML = html;
+
+                // If current date, pre-select current time
+                if (selectedDate === currentDate) {
+                    const currentBtn = document.querySelector('.current-time');
+                    if (currentBtn) {
+                        selectTimeSlot(currentTime, currentBtn);
+                    }
+                }
+            } else {
+                console.log('No slots returned. Message:', data.message);
+                timeSlotsContainer.innerHTML = `<p style="color: #e74c3c;">No available times on this date. ${data.message || 'Please select another date.'}</p>`;
+                submitBtn.disabled = true;
+                newTimeInput.value = '';
+            }
+        } catch (error) {
+            console.error('Error loading slots:', error);
+            timeSlotsContainer.innerHTML = `<p style="color: #e74c3c;">Error loading available times: ${error.message}. Please try again.</p>`
+        }
+
+        updatePreview();
+    }
+
+    newDateInput.addEventListener('change', loadAvailableSlots);
+
+    // Load slots for initial date
+    loadAvailableSlots();
+</script>
+{% endblock %}

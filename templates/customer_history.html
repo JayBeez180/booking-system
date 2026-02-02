@@ -1,0 +1,54 @@
+{% extends "customer_base.html" %}
+
+{% block title %}Booking History - White Thorn Piercing{% endblock %}
+
+{% block content %}
+<div class="container">
+    <p><a href="{{ url_for('customer_dashboard') }}" style="color: var(--gold);">&larr; Back to Dashboard</a></p>
+
+    <h1>Booking History</h1>
+    <p class="subtitle">Your past appointments with us</p>
+
+    {% if history %}
+        {% for booking in history %}
+        <div class="card" style="margin-bottom: 15px; {% if booking.status == 'cancelled' %}opacity: 0.6;{% endif %}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px;">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <h3 style="color: var(--gold); margin: 0;">{{ booking.service.name }}</h3>
+                        {% if booking.status == 'cancelled' %}
+                            <span style="background: rgba(231, 76, 60, 0.2); color: #f5a5a0; padding: 3px 10px; border-radius: 4px; font-size: 12px;">Cancelled</span>
+                        {% elif booking.status == 'no_show' %}
+                            <span style="background: rgba(241, 196, 15, 0.2); color: #f1c40f; padding: 3px 10px; border-radius: 4px; font-size: 12px;">No Show</span>
+                        {% else %}
+                            <span style="background: rgba(39, 174, 96, 0.2); color: #7ed6a5; padding: 3px 10px; border-radius: 4px; font-size: 12px;">Completed</span>
+                        {% endif %}
+                    </div>
+                    <div style="color: rgba(245, 241, 232, 0.7);">
+                        {{ booking.booking_date.strftime('%A, %d %B %Y') }} at {{ booking.booking_time }}
+                    </div>
+                    {% if booking.service.price and booking.status != 'cancelled' %}
+                    <div style="color: var(--gold); margin-top: 5px;">
+                        £{{ "%.2f"|format(booking.service.price) }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if booking.service_id in aftercare_map and booking.status != 'cancelled' %}
+                <div>
+                    <a href="{{ url_for('customer_aftercare_detail', aftercare_id=aftercare_map[booking.service_id].id) }}" class="btn btn-secondary" style="margin: 0; padding: 10px 15px; font-size: 13px;">
+                        View Aftercare
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card" style="text-align: center; padding: 40px;">
+            <p style="color: rgba(245, 241, 232, 0.7); margin-bottom: 20px;">You don't have any past appointments yet.</p>
+            <a href="{{ url_for('booking_page') }}" class="btn">Book Your First Appointment</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

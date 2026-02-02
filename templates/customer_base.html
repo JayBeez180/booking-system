@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}White Thorn Piercing{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-green: #1a3a32;
+            --darker-green: #142b26;
+            --gold: #c9a962;
+            --gold-light: #d4bc7c;
+            --gold-dark: #a68b4b;
+            --cream: #f5f1e8;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Raleway', sans-serif;
+            background-color: var(--dark-green);
+            color: var(--cream);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--darker-green);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--gold-dark);
+        }
+
+        .logo-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .logo {
+            max-width: 150px;
+            height: auto;
+        }
+
+        .lady-figure {
+            width: 78px;
+            height: 91px;
+            background-image: url("/static/logo.png?v=2");
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: brightness(1.6);
+        }
+
+        .lady-figure.mirrored {
+            transform: scaleX(-1);
+        }
+
+        @media (max-width: 768px) {
+            .lady-figure {
+                width: 58px;
+                height: 72px;
+            }
+        }
+
+        .brand-name {
+            font-family: 'Cinzel', serif;
+            font-size: 28px;
+            color: var(--gold);
+            letter-spacing: 3px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 15px;
+            background-color: var(--darker-green);
+            border-bottom: 1px solid rgba(201, 169, 98, 0.3);
+        }
+
+        .nav a {
+            color: var(--gold-light);
+            text-decoration: none;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 8px 15px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav a:hover {
+            color: var(--white);
+            background-color: rgba(201, 169, 98, 0.2);
+            border-radius: 4px;
+        }
+
+        .nav a.active {
+            color: var(--white);
+            border-bottom: 2px solid var(--gold);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background-color: var(--darker-green);
+            padding: 40px;
+            border-radius: 12px;
+            border: 1px solid rgba(201, 169, 98, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Typography */
+        h1 {
+            font-family: 'Cinzel', serif;
+            color: var(--gold);
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 500;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            font-family: 'Cinzel', serif;
+            color: var(--gold-light);
+            font-size: 22px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--gold-light);
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: var(--cream);
+            margin-bottom: 15px;
+        }
+
+        .subtitle {
+            color: rgba(245, 241, 232, 0.7);
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        /* Forms */
+        form {
+            max-width: 100%;
+        }
+
+        label {
+            display: block;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            color: var(--gold-light);
+            font-weight: 500;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 14px 16px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(201, 169, 98, 0.3);
+            border-radius: 6px;
+            color: var(--cream);
+            font-size: 16px;
+            font-family: 'Raleway', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--gold);
+            background-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(201, 169, 98, 0.1);
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: rgba(245, 241, 232, 0.4);
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23c9a962' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+
+        select option {
+            background-color: var(--darker-green);
+            color: var(--cream);
+        }
+
+        /* Buttons */
+        button, .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            color: var(--darker-green);
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-family: 'Raleway', sans-serif;
+            margin-top: 20px;
+        }
+
+        button:hover, .btn:hover {
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(201, 169, 98, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(201, 169, 98, 0.1);
+            color: var(--gold-light);
+        }
+
+        /* Cards */
+        .card {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(201, 169, 98, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--gold);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Time Slots Grid */
+        .slots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .slot-btn {
+            padding: 12px;
+            background-color: rgba(201, 169, 98, 0.1);
+            border: 1px solid rgba(201, 169, 98, 0.3);
+            border-radius: 6px;
+            color: var(--cream);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .slot-btn:hover {
+            background-color: rgba(201, 169, 98, 0.2);
+            border-color: var(--gold);
+        }
+
+        .slot-btn.selected {
+            background-color: var(--gold);
+            color: var(--darker-green);
+            border-color: var(--gold);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 16px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+
+        .alert-success {
+            background-color: rgba(39, 174, 96, 0.15);
+            border: 1px solid rgba(39, 174, 96, 0.4);
+            color: #7ed6a5;
+        }
+
+        .alert-error {
+            background-color: rgba(231, 76, 60, 0.15);
+            border: 1px solid rgba(231, 76, 60, 0.4);
+            color: #f5a5a0;
+        }
+
+        .alert-info {
+            background-color: rgba(201, 169, 98, 0.15);
+            border: 1px solid rgba(201, 169, 98, 0.4);
+            color: var(--gold-light);
+        }
+
+        /* Service Cards */
+        .service-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(201, 169, 98, 0.2);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .service-card:hover {
+            border-color: var(--gold);
+            background-color: rgba(201, 169, 98, 0.1);
+        }
+
+        .service-card.selected {
+            border-color: var(--gold);
+            background-color: rgba(201, 169, 98, 0.15);
+        }
+
+        .service-info h3 {
+            margin: 0 0 5px 0;
+            color: var(--gold-light);
+        }
+
+        .service-info p {
+            margin: 0;
+            font-size: 14px;
+            color: rgba(245, 241, 232, 0.6);
+        }
+
+        .service-price {
+            font-family: 'Cinzel', serif;
+            font-size: 20px;
+            color: var(--gold);
+        }
+
+        /* Checkbox styling */
+        input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+            accent-color: var(--gold);
+        }
+
+        label.checkbox-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        label.checkbox-label input {
+            margin-top: 4px;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold-dark), transparent);
+            margin: 30px 0;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: rgba(245, 241, 232, 0.5);
+            font-size: 14px;
+        }
+
+        .footer a {
+            color: rgba(245, 241, 232, 0.4);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: var(--gold);
+        }
+
+        .footer .admin-link {
+            font-size: 12px;
+            margin-top: 15px;
+        }
+
+        /* Confirmation Page Styles */
+        .confirmation-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+        }
+
+        .confirmation-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: var(--darker-green);
+        }
+
+        .booking-details {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(201, 169, 98, 0.3);
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(201, 169, 98, 0.1);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: rgba(245, 241, 232, 0.6);
+        }
+
+        .detail-value {
+            color: var(--cream);
+            font-weight: 500;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px;
+            }
+
+            .logo {
+                max-width: 100px;
+            }
+
+            .brand-name {
+                font-size: 22px;
+            }
+
+            .nav {
+                gap: 15px;
+                flex-wrap: wrap;
+            }
+
+            .nav a {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+
+            .main-content {
+                padding: 20px 15px;
+            }
+
+            .container {
+                padding: 25px 20px;
+            }
+
+            h1 {
+                font-size: 26px;
+            }
+
+            .service-card {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo-container">
+            <div class="lady-figure mirrored"></div>
+            <div class="brand-name">White Thorn Piercing</div>
+            <div class="lady-figure"></div>
+        </div>
+    </header>
+
+    <nav class="nav">
+        <a href="/" class="{% if request.endpoint == 'home' %}active{% endif %}">Home</a>
+        <a href="/book" class="{% if request.endpoint in ['booking_page', 'get_available_slots', 'confirm_booking', 'intake_form'] %}active{% endif %}">Book Now</a>
+        {% if session.get('customer_logged_in') %}
+            <a href="{{ url_for('customer_dashboard') }}" class="{% if request.endpoint and 'customer_' in request.endpoint %}active{% endif %}">My Account</a>
+            <a href="{{ url_for('customer_logout') }}">Logout</a>
+        {% else %}
+            <a href="{{ url_for('customer_login') }}" class="{% if request.endpoint == 'customer_login' %}active{% endif %}">Login</a>
+            <a href="{{ url_for('customer_register') }}" class="{% if request.endpoint == 'customer_register' %}active{% endif %}">Register</a>
+        {% endif %}
+    </nav>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 White Thorn Piercing. All rights reserved.</p>
+        <p class="admin-link"><a href="/admin/login">Staff Login</a></p>
+    </footer>
+</body>
+</html>

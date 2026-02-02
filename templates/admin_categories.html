@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Categories{% endblock %}
+
+{% block content %}
+<style>
+    .category-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .category-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .category-header h3 {
+        margin: 0;
+        color: #2c3e50;
+    }
+
+    .service-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .service-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 10px 15px;
+        border-radius: 6px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .service-item:hover {
+        border-color: #3498db;
+    }
+
+    .service-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .service-name {
+        font-weight: 500;
+    }
+
+    .service-details {
+        color: #666;
+        font-size: 13px;
+    }
+
+    .move-btn {
+        padding: 5px 10px;
+        font-size: 12px;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .move-btn:hover {
+        background: #2980b9;
+    }
+
+    .no-services {
+        color: #666;
+        font-style: italic;
+        padding: 10px;
+    }
+
+    /* Move Modal */
+    .move-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .move-modal.show {
+        display: flex;
+    }
+
+    .move-modal-content {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        max-width: 400px;
+        width: 90%;
+    }
+
+    .move-modal h3 {
+        margin-top: 0;
+    }
+
+    .category-option {
+        display: block;
+        padding: 12px 15px;
+        margin: 8px 0;
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .category-option:hover {
+        background: #e8f4fd;
+        border-color: #3498db;
+    }
+
+    .category-option.current {
+        background: #d4edda;
+        border-color: #27ae60;
+        cursor: default;
+    }
+</style>
+
+    <h1>Manage Categories</h1>
+
+    <p>Organise your services into categories. Click "Move" on any service to change its category.</p>
+
+    <a href="/admin/categories/add" class="btn btn-success" style="margin-bottom: 20px;">+ Add New Category</a>
+
+    {% if categories %}
+        {% for category in categories %}
+        <div class="category-card">
+            <div class="category-header">
+                <h3>{{ category.name }}</h3>
+                <div>
+                    <a href="/admin/categories/edit/{{ category.id }}" class="btn btn-small">Rename</a>
+                    <form method="POST" action="/admin/categories/delete/{{ category.id }}" style="display: inline;" onsubmit="return confirm('Are you sure? Services in this category will become uncategorised.');">
+                        <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="service-list">
+                {% set active_services = category.services | selectattr('is_active') | list %}
+                {% if active_services %}
+                    {% for service in active_services %}
+                    <div class="service-item">
+                        <div class="service-info">
+                            <span class="service-name">{{ service.name }}</span>
+                            <span class="service-details">{{ service.duration_minutes }} mins{% if service.price %} · £{{ "%.2f"|format(service.price) }}{% endif %}</span>
+                        </div>
+                        <button type="button" class="move-btn" onclick="openMoveModal({{ service.id }}, '{{ service.name | e }}', {{ category.id }})">
+                            Move
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="no-services">No services in this category</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No categories yet. Add your first category to organise your services!</p>
+    {% endif %}
+
+    <!-- Uncategorised Services -->
+    {% if uncategorised %}
+    <div class="category-card" style="background: #fff3cd; border: 1px solid #f1c40f;">
+        <div class="category-header">
+            <h3 style="color: #856404;">⚠️ Uncategorised</h3>
+        </div>
+
+        <div class="service-list">
+            {% for service in uncategorised %}
+            <div class="service-item">
+                <div class="service-info">
+                    <span class="service-name">{{ service.name }}</span>
+                    <span class="service-details">{{ service.duration_minutes }} mins{% if service.price %} · £{{ "%.2f"|format(service.price) }}{% endif %}</span>
+                </div>
+                <button type="button" class="move-btn" onclick="openMoveModal({{ service.id }}, '{{ service.name | e }}', null)">
+                    Move to Category
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+<!-- Move Service Modal -->
+<div id="moveModal" class="move-modal" onclick="if(event.target === this) closeMoveModal()">
+    <div class="move-modal-content">
+        <h3>Move Service</h3>
+        <p>Move "<strong id="moveServiceName"></strong>" to:</p>
+
+        <form id="moveForm" method="POST" action="/admin/services/move-category">
+            <input type="hidden" name="service_id" id="moveServiceId">
+
+            {% for category in categories %}
+            <label class="category-option" data-category-id="{{ category.id }}">
+                <input type="radio" name="category_id" value="{{ category.id }}" style="margin-right: 10px;">
+                {{ category.name }}
+            </label>
+            {% endfor %}
+
+            <label class="category-option" data-category-id="none">
+                <input type="radio" name="category_id" value="" style="margin-right: 10px;">
+                <em>Uncategorised</em>
+            </label>
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button type="submit" class="btn" style="background: #27ae60;">Move Service</button>
+                <button type="button" class="btn" onclick="closeMoveModal()" style="background: #95a5a6;">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openMoveModal(serviceId, serviceName, currentCategoryId) {
+        document.getElementById('moveServiceId').value = serviceId;
+        document.getElementById('moveServiceName').textContent = serviceName;
+
+        // Reset all options and highlight current
+        document.querySelectorAll('.category-option').forEach(option => {
+            option.classList.remove('current');
+            const radio = option.querySelector('input[type="radio"]');
+            radio.checked = false;
+
+            const catId = option.dataset.categoryId;
+            if ((currentCategoryId === null && catId === 'none') ||
+                (currentCategoryId !== null && catId === String(currentCategoryId))) {
+                option.classList.add('current');
+                radio.checked = true;
+            }
+        });
+
+        document.getElementById('moveModal').classList.add('show');
+    }
+
+    function closeMoveModal() {
+        document.getElementById('moveModal').classList.remove('show');
+    }
+
+    // Close on escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeMoveModal();
+        }
+    });
+</script>
+{% endblock %}

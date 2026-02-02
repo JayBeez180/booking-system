@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Aftercare Guide{% endblock %}
+
+{% block content %}
+    <p><a href="{{ url_for('admin_aftercare') }}">&larr; Back to Aftercare</a></p>
+
+    <h1>Edit Aftercare Guide</h1>
+
+    <form method="POST" style="max-width: 700px;">
+        <label>Title *</label>
+        <input type="text" name="title" required value="{{ aftercare.title }}">
+
+        <label>Associated Service</label>
+        <select name="service_id">
+            <option value="">General (applies to all services)</option>
+            {% for service in services %}
+                <option value="{{ service.id }}" {% if aftercare.service_id == service.id %}selected{% endif %}>{{ service.name }}</option>
+            {% endfor %}
+        </select>
+        <small style="color: #666; display: block; margin-top: 5px;">
+            Leave blank for general aftercare advice that applies to all piercings.
+        </small>
+
+        <label>Content *</label>
+        <textarea name="content" rows="15" required>{{ aftercare.content }}</textarea>
+
+        <div style="margin-top: 25px;">
+            <button type="submit" class="btn btn-success">Update Aftercare Guide</button>
+            <a href="{{ url_for('admin_aftercare') }}" class="btn" style="background: #95a5a6;">Cancel</a>
+        </div>
+    </form>
+
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+        <small style="color: #888;">
+            Created: {{ aftercare.created_at.strftime('%d %B %Y at %H:%M') }}<br>
+            {% if aftercare.updated_at %}
+            Last Updated: {{ aftercare.updated_at.strftime('%d %B %Y at %H:%M') }}
+            {% endif %}
+        </small>
+    </div>
+{% endblock %}

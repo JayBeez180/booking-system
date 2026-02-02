@@ -1,0 +1,38 @@
+{% extends "customer_base.html" %}
+
+{% block title %}Create Account - White Thorn Piercing{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 450px; margin: 0 auto;">
+    <h1 style="text-align: center;">Create Account</h1>
+    <p class="subtitle" style="text-align: center;">Join us to manage your bookings and receive aftercare advice</p>
+
+    <form method="POST" action="{{ url_for('customer_register') }}">
+        <label>Full Name *</label>
+        <input type="text" name="name" value="{{ name or '' }}" required placeholder="Enter your full name">
+
+        <label>Email Address *</label>
+        <input type="email" name="email" value="{{ email or '' }}" required placeholder="your@email.com">
+
+        <label>Phone Number</label>
+        <input type="tel" name="phone" value="{{ phone or '' }}" placeholder="Your phone number">
+
+        <label>Password *</label>
+        <input type="password" name="password" required placeholder="At least 6 characters" minlength="6">
+
+        <label>Confirm Password *</label>
+        <input type="password" name="confirm_password" required placeholder="Re-enter your password" minlength="6">
+
+        <div style="margin-top: 25px;">
+            <button type="submit" style="width: 100%;">Create Account</button>
+        </div>
+    </form>
+
+    <div class="divider"></div>
+
+    <p style="text-align: center; color: rgba(245, 241, 232, 0.7);">
+        Already have an account?
+        <a href="{{ url_for('customer_login') }}" style="color: var(--gold);">Log in here</a>
+    </p>
+</div>
+{% endblock %}

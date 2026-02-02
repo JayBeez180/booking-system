@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Booking System{% endblock %}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+        }
+        nav {
+            background-color: #2c3e50;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        nav a:hover {
+            background-color: #34495e;
+        }
+        nav a.book-now {
+            background-color: #27ae60;
+        }
+        nav a.book-now:hover {
+            background-color: #219a52;
+        }
+        nav .nav-right {
+            margin-left: auto;
+            display: flex;
+            gap: 5px;
+        }
+        nav a.logout {
+            background-color: #e74c3c;
+        }
+        nav a.logout:hover {
+            background-color: #c0392b;
+        }
+        .nav-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .nav-dropdown-btn {
+            color: white;
+            padding: 10px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: inline-block;
+        }
+        .nav-dropdown-btn:hover {
+            background-color: #34495e;
+        }
+        .nav-dropdown-btn::after {
+            content: ' ▾';
+            font-size: 10px;
+        }
+        .nav-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #2c3e50;
+            min-width: 160px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border-radius: 4px;
+            top: 100%;
+            left: 0;
+        }
+        .nav-dropdown-content a {
+            display: block;
+            padding: 10px 15px;
+            border-radius: 0;
+        }
+        .nav-dropdown-content a:hover {
+            background-color: #34495e;
+        }
+        .nav-dropdown:hover .nav-dropdown-content {
+            display: block;
+        }
+        .nav-divider {
+            width: 1px;
+            background: rgba(255,255,255,0.2);
+            margin: 5px 8px;
+        }
+        .container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        h2 {
+            color: #34495e;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        form {
+            max-width: 500px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        button, .btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            transition: background-color 0.2s;
+        }
+        button:hover, .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #27ae60;
+        }
+        .btn-success:hover {
+            background-color: #219a52;
+        }
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+            margin: 2px;
+        }
+        .success {
+            color: #155724;
+            padding: 12px;
+            margin: 15px 0;
+            background-color: #d4edda;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            color: #721c24;
+            padding: 12px;
+            margin: 15px 0;
+            background-color: #f8d7da;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .badge-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .badge-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .actions {
+            white-space: nowrap;
+        }
+        @media (max-width: 768px) {
+            nav {
+                flex-direction: column;
+            }
+            nav .nav-right {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+            table {
+                font-size: 14px;
+            }
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">Home</a>
+        {% if session.get('admin_logged_in') %}
+            <a href="/admin/calendar">Calendar</a>
+            <a href="/admin/bookings">Bookings</a>
+            <a href="/admin/clients">Clients</a>
+            <div class="nav-divider"></div>
+            <div class="nav-dropdown">
+                <span class="nav-dropdown-btn">Services</span>
+                <div class="nav-dropdown-content">
+                    <a href="/admin/services">Manage Services</a>
+                    <a href="/admin/categories">Categories</a>
+                </div>
+            </div>
+            <div class="nav-dropdown">
+                <span class="nav-dropdown-btn">Schedule</span>
+                <div class="nav-dropdown-content">
+                    <a href="/admin/availability">Availability</a>
+                    <a href="/admin/blocked-times">Blocked Times</a>
+                </div>
+            </div>
+            <div class="nav-dropdown">
+                <span class="nav-dropdown-btn">More</span>
+                <div class="nav-dropdown-content">
+                    <a href="/admin/intake-forms">Intake Forms</a>
+                    <a href="/admin/aftercare">Aftercare</a>
+                    <a href="/admin/import">Import Bookings</a>
+                    <a href="/admin/settings">Settings</a>
+                </div>
+            </div>
+        {% endif %}
+        <div class="nav-right">
+            <a href="/book" class="book-now">Book Now</a>
+            {% if session.get('admin_logged_in') %}
+                <a href="/admin/logout" class="logout">Logout</a>
+            {% else %}
+                <a href="/admin/login">Admin</a>
+            {% endif %}
+        </div>
+    </nav>
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="{{ 'success' if category == 'success' else 'error' }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

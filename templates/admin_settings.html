@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+    <h1>Settings</h1>
+
+    {% if test_result %}
+        <div class="flash {% if test_result == 'success' %}flash-success{% else %}flash-error{% endif %}">
+            {% if test_result == 'success' %}
+                Test email sent successfully! Check your inbox.
+            {% else %}
+                Failed to send test email. Please check your SMTP settings.
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <form method="POST">
+        <!-- Business Information -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="margin-top: 0;">Business Information</h2>
+            <p style="color: #666;">This information will appear in customer emails.</p>
+
+            <label>Business Name:</label>
+            <input type="text" name="business_name" value="{{ settings.business_name }}">
+
+            <label>Business Email:</label>
+            <input type="email" name="business_email" value="{{ settings.business_email }}" placeholder="contact@yourbusiness.com">
+
+            <label>Business Phone:</label>
+            <input type="tel" name="business_phone" value="{{ settings.business_phone }}" placeholder="(555) 123-4567">
+
+            <label>Business Address:</label>
+            <textarea name="business_address" rows="2" placeholder="123 Main St, City, State ZIP">{{ settings.business_address }}</textarea>
+        </div>
+
+        <!-- Email Settings -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="margin-top: 0;">Email Settings (SMTP)</h2>
+            <p style="color: #666;">Configure your email server to send automatic notifications.</p>
+
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <input type="checkbox" name="email_enabled" value="true" {% if settings.email_enabled == 'true' %}checked{% endif %} style="width: auto;">
+                <span>Enable Email Notifications</span>
+            </label>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                <div>
+                    <label>SMTP Server:</label>
+                    <input type="text" name="smtp_server" value="{{ settings.smtp_server }}" placeholder="smtp.gmail.com">
+                </div>
+                <div>
+                    <label>SMTP Port:</label>
+                    <input type="number" name="smtp_port" value="{{ settings.smtp_port }}" placeholder="587">
+                </div>
+            </div>
+
+            <label>SMTP Username (Email):</label>
+            <input type="email" name="smtp_username" value="{{ settings.smtp_username }}" placeholder="your-email@gmail.com">
+
+            <label>SMTP Password / App Password:</label>
+            <input type="password" name="smtp_password" value="{{ settings.smtp_password }}" placeholder="Enter password">
+            <small style="color: #666; display: block; margin-top: 5px;">
+                For Gmail, use an <a href="https://support.google.com/accounts/answer/185833" target="_blank">App Password</a> instead of your regular password.
+            </small>
+
+            <label style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+                <input type="checkbox" name="smtp_use_tls" value="true" {% if settings.smtp_use_tls == 'true' %}checked{% endif %} style="width: auto;">
+                <span>Use TLS (recommended)</span>
+            </label>
+        </div>
+
+        <!-- Notification Settings -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="margin-top: 0;">Notification Settings</h2>
+
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <input type="checkbox" name="send_confirmation_email" value="true" {% if settings.send_confirmation_email == 'true' %}checked{% endif %} style="width: auto;">
+                <span>Send confirmation email when booking is made</span>
+            </label>
+
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <input type="checkbox" name="send_reminder_email" value="true" {% if settings.send_reminder_email == 'true' %}checked{% endif %} style="width: auto;">
+                <span>Send reminder email before appointment</span>
+            </label>
+
+            <label>Send reminder how many hours before appointment:</label>
+            <select name="reminder_hours_before">
+                <option value="12" {% if settings.reminder_hours_before == '12' %}selected{% endif %}>12 hours</option>
+                <option value="24" {% if settings.reminder_hours_before == '24' %}selected{% endif %}>24 hours (1 day)</option>
+                <option value="48" {% if settings.reminder_hours_before == '48' %}selected{% endif %}>48 hours (2 days)</option>
+                <option value="72" {% if settings.reminder_hours_before == '72' %}selected{% endif %}>72 hours (3 days)</option>
+            </select>
+
+            <hr style="margin: 25px 0; border: none; border-top: 1px solid #ddd;">
+
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <input type="checkbox" name="send_day_after_email" value="true" {% if settings.send_day_after_email == 'true' %}checked{% endif %} style="width: auto;">
+                <span>Send 24-hour follow-up email (thank you & review request)</span>
+            </label>
+            <p style="color: #666; font-size: 13px; margin-top: -10px; margin-left: 25px;">
+                Sends a thank you email 24 hours after completed appointments with aftercare reminder and Google review request.
+            </p>
+
+            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <input type="checkbox" name="send_followup_email" value="true" {% if settings.send_followup_email == 'true' %}checked{% endif %} style="width: auto;">
+                <span>Send 6-week follow-up email (downsize reminder & aftercare)</span>
+            </label>
+            <p style="color: #666; font-size: 13px; margin-top: -10px; margin-left: 25px;">
+                Automatically sends a check-in email 6 weeks after completed appointments to remind clients about downsizing their jewellery and continued aftercare.
+            </p>
+
+            <hr style="margin: 25px 0; border: none; border-top: 1px solid #ddd;">
+
+            <label>Google Review Link:</label>
+            <input type="url" name="google_review_link" value="{{ settings.google_review_link or '' }}" placeholder="https://g.page/r/YOUR_REVIEW_LINK">
+            <p style="color: #666; font-size: 13px; margin-top: 5px;">
+                Used in the 24-hour follow-up email. Find your link at <a href="https://support.google.com/business/answer/7035772" target="_blank">Google Business Profile</a>.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <button type="submit" class="btn-success">Save Settings</button>
+            <button type="submit" name="test_email" value="1" class="btn">Send Test Email</button>
+        </div>
+    </form>
+
+    <!-- Common SMTP Settings Reference -->
+    <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin-top: 30px;">
+        <h3 style="margin-top: 0;">Common SMTP Settings</h3>
+        <table style="margin: 0;">
+            <tr>
+                <th>Provider</th>
+                <th>Server</th>
+                <th>Port</th>
+                <th>Notes</th>
+            </tr>
+            <tr>
+                <td><strong>Gmail</strong></td>
+                <td>smtp.gmail.com</td>
+                <td>587</td>
+                <td>Requires App Password</td>
+            </tr>
+            <tr>
+                <td><strong>Outlook/Hotmail</strong></td>
+                <td>smtp-mail.outlook.com</td>
+                <td>587</td>
+                <td>Use your Outlook email</td>
+            </tr>
+            <tr>
+                <td><strong>Yahoo</strong></td>
+                <td>smtp.mail.yahoo.com</td>
+                <td>587</td>
+                <td>Requires App Password</td>
+            </tr>
+            <tr>
+                <td><strong>SendGrid</strong></td>
+                <td>smtp.sendgrid.net</td>
+                <td>587</td>
+                <td>Use API key as password</td>
+            </tr>
+        </table>
+    </div>
+{% endblock %}

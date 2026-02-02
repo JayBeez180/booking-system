@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Intake Forms{% endblock %}
+
+{% block content %}
+    <h1>Intake Forms</h1>
+
+    <!-- Filters -->
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="/admin/intake-forms" class="btn btn-small {% if not show_unreviewed %}btn-success{% endif %}">All Forms</a>
+        <a href="/admin/intake-forms?unreviewed=1" class="btn btn-small {% if show_unreviewed %}btn-success{% endif %}">Needs Review</a>
+    </div>
+
+    {% if forms %}
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            {% for form in forms %}
+            <tr>
+                <td>{{ form.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    <strong>{{ form.full_name }}</strong>
+                    {% if form.is_minor %}<span class="badge badge-warning">Minor</span>{% endif %}
+                </td>
+                <td>{{ form.email }}</td>
+                <td>
+                    {% if form.reviewed_by_admin %}
+                        <span class="badge badge-success">Reviewed</span>
+                    {% else %}
+                        <span class="badge badge-warning">Pending Review</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/admin/intake-forms/{{ form.id }}" class="btn btn-small">View Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No intake forms found.</p>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Add Blocked Time{% endblock %}
+
+{% block content %}
+    <p><a href="/admin/blocked-times">&larr; Back to Blocked Times</a></p>
+
+    <h1>Add Blocked Time</h1>
+
+    <style>
+        .block-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .block-type-btn {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .block-type-btn:hover {
+            border-color: #3498db;
+        }
+        .block-type-btn.active {
+            border-color: #3498db;
+            background: #e8f4fd;
+        }
+        .block-type-btn h3 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+        }
+        .block-type-btn p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .form-section {
+            display: none;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .form-section.active {
+            display: block;
+        }
+        .time-inputs {
+            display: flex;
+            gap: 15px;
+        }
+        .time-inputs > div {
+            flex: 1;
+        }
+    </style>
+
+    <form method="POST">
+        <label>Block Type</label>
+        <div class="block-type-selector">
+            <div class="block-type-btn active" onclick="selectBlockType('single')">
+                <h3>Single</h3>
+                <p>Block one date/time</p>
+            </div>
+            <div class="block-type-btn" onclick="selectBlockType('range')">
+                <h3>Date Range</h3>
+                <p>Block multiple days</p>
+            </div>
+            <div class="block-type-btn" onclick="selectBlockType('recurring')">
+                <h3>Recurring</h3>
+                <p>Weekly repeat</p>
+            </div>
+        </div>
+        <input type="hidden" name="block_type" id="block_type" value="single">
+
+        <!-- Single Date/Time Block -->
+        <div id="single-section" class="form-section active">
+            <label>Date</label>
+            <input type="date" name="block_date" min="{{ today }}" max="{{ max_date }}" value="{{ today }}">
+        </div>
+
+        <!-- Date Range Block -->
+        <div id="range-section" class="form-section">
+            <div class="time-inputs">
+                <div>
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" min="{{ today }}" max="{{ max_date }}" value="{{ today }}">
+                </div>
+                <div>
+                    <label>End Date</label>
+                    <input type="date" name="end_date" min="{{ today }}" max="{{ max_date }}" value="{{ today }}">
+                </div>
+            </div>
+            <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                All dates in this range will be blocked for the entire day.
+            </p>
+        </div>
+
+        <!-- Recurring Weekly Block -->
+        <div id="recurring-section" class="form-section">
+            <label>Day of Week</label>
+            <select name="day_of_week">
+                {% for day in days %}
+                    <option value="{{ loop.index0 }}">{{ day }}</option>
+                {% endfor %}
+            </select>
+            <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                This block will repeat every week on the selected day.
+            </p>
+        </div>
+
+        <!-- Time Options (for single and recurring) -->
+        <div id="time-options">
+            <label>
+                <input type="checkbox" name="is_all_day" value="yes" id="all_day_checkbox" onchange="toggleTimeInputs()">
+                Block entire day (all day)
+            </label>
+
+            <div id="time-inputs-container" style="margin-top: 15px;">
+                <div class="time-inputs">
+                    <div>
+                        <label>Start Time</label>
+                        <input type="time" name="start_time" value="12:00">
+                    </div>
+                    <div>
+                        <label>End Time</label>
+                        <input type="time" name="end_time" value="13:00">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <label>Reason (optional)</label>
+        <input type="text" name="reason" placeholder="e.g., Lunch, Break, Day Off, Holiday">
+
+        <button type="submit" class="btn-success">Add Blocked Time</button>
+    </form>
+
+    <script>
+        function selectBlockType(type) {
+            // Update buttons
+            document.querySelectorAll('.block-type-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            // Update hidden input
+            document.getElementById('block_type').value = type;
+
+            // Show/hide sections
+            document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+            document.getElementById(type + '-section').classList.add('active');
+
+            // Show/hide time options
+            const timeOptions = document.getElementById('time-options');
+            if (type === 'range') {
+                timeOptions.style.display = 'none';
+            } else {
+                timeOptions.style.display = 'block';
+            }
+        }
+
+        function toggleTimeInputs() {
+            const checkbox = document.getElementById('all_day_checkbox');
+            const timeContainer = document.getElementById('time-inputs-container');
+            timeContainer.style.display = checkbox.checked ? 'none' : 'block';
+        }
+    </script>
+{% endblock %}

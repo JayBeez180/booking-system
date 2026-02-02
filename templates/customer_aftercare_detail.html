@@ -1,0 +1,24 @@
+{% extends "customer_base.html" %}
+
+{% block title %}{{ aftercare.title }} - White Thorn Piercing{% endblock %}
+
+{% block content %}
+<div class="container">
+    <p><a href="{{ url_for('customer_aftercare') }}" style="color: var(--gold);">&larr; Back to Aftercare</a></p>
+
+    <h1>{{ aftercare.title }}</h1>
+    {% if aftercare.service %}
+    <p class="subtitle">Aftercare guide for {{ aftercare.service.name }}</p>
+    {% endif %}
+
+    <div class="card" style="margin-top: 30px;">
+        <div style="white-space: pre-wrap; line-height: 1.8;">{{ aftercare.content }}</div>
+    </div>
+
+    {% if aftercare.updated_at %}
+    <p style="color: rgba(245, 241, 232, 0.5); font-size: 13px; margin-top: 20px; text-align: right;">
+        Last updated: {{ aftercare.updated_at.strftime('%d %B %Y') }}
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

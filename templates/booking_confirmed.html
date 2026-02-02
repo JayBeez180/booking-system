@@ -1,0 +1,99 @@
+{% extends "customer_base.html" %}
+
+{% block title %}Booking Confirmed - White Thorn Piercing{% endblock %}
+
+{% block content %}
+<div class="container" style="text-align: center;">
+    <div class="confirmation-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        </svg>
+    </div>
+
+    <h1>Booking Confirmed!</h1>
+    <p class="subtitle">Thank you for choosing White Thorn Piercing</p>
+
+    <div class="booking-details" style="text-align: left; max-width: 500px; margin: 30px auto;">
+        <h3 style="color: var(--gold); margin-top: 0; margin-bottom: 20px; text-align: center;">Appointment Details</h3>
+
+        <div class="detail-row">
+            <span class="detail-label">Service</span>
+            <span class="detail-value">{{ service.name }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Date</span>
+            <span class="detail-value">{{ booking.booking_date }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Time</span>
+            <span class="detail-value">{{ booking.booking_time }} - {{ booking.end_time }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Duration</span>
+            <span class="detail-value">{{ service.duration_minutes }} minutes</span>
+        </div>
+        {% if service.price %}
+        <div class="detail-row">
+            <span class="detail-label">Price</span>
+            <span class="detail-value" style="color: var(--gold);">£{{ "%.2f"|format(service.price) }}</span>
+        </div>
+        {% endif %}
+
+        <div class="divider" style="margin: 20px 0;"></div>
+
+        <div class="detail-row">
+            <span class="detail-label">Name</span>
+            <span class="detail-value">{{ booking.customer_name }}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Email</span>
+            <span class="detail-value">{{ booking.customer_email }}</span>
+        </div>
+        {% if booking.customer_phone %}
+        <div class="detail-row">
+            <span class="detail-label">Phone</span>
+            <span class="detail-value">{{ booking.customer_phone }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="alert alert-info" style="max-width: 500px; margin: 0 auto 30px; text-align: left;">
+        <strong>Important reminders:</strong>
+        <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+            <li>Please arrive 5-10 minutes before your appointment</li>
+            <li>Bring a valid government-issued photo ID</li>
+            <li>A confirmation email has been sent to your inbox</li>
+        </ul>
+    </div>
+
+    {% if not session.get('customer_logged_in') %}
+    <!-- Account Creation Prompt -->
+    <div class="card" style="max-width: 500px; margin: 0 auto 30px; text-align: center; border-color: var(--gold);">
+        <h3 style="color: var(--gold); margin-top: 0;">Create an Account</h3>
+        <p style="color: rgba(245, 241, 232, 0.7); margin-bottom: 20px;">
+            Create an account to manage your appointments online, view booking history, and access aftercare advice.
+        </p>
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('customer_register') }}" class="btn" style="margin: 0;">Create Account</a>
+            <a href="{{ url_for('customer_login') }}" class="btn btn-secondary" style="margin: 0;">Already have an account? Log in</a>
+        </div>
+    </div>
+    {% else %}
+    <!-- Logged in user message -->
+    <div class="alert alert-success" style="max-width: 500px; margin: 0 auto 30px;">
+        <strong>Booking saved to your account!</strong><br>
+        You can manage this appointment from your <a href="{{ url_for('customer_dashboard') }}" style="color: inherit; text-decoration: underline;">dashboard</a>.
+    </div>
+    {% endif %}
+
+    <p style="color: rgba(245, 241, 232, 0.7); margin-bottom: 30px;">
+        {% if session.get('customer_logged_in') %}
+        Need to reschedule? Visit your <a href="{{ url_for('customer_appointments') }}" style="color: var(--gold);">appointments page</a>.
+        {% else %}
+        Need to cancel or reschedule? Please contact us as soon as possible.
+        {% endif %}
+    </p>
+
+    <a href="/book" class="btn btn-secondary">Book Another Appointment</a>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Availability{% endblock %}
+
+{% block content %}
+    <h1>Manage Availability</h1>
+
+    <a href="/admin/availability/add" class="btn btn-success">+ Add Working Hours</a>
+
+    <h2>Current Availability</h2>
+
+    {% if availability %}
+        <table>
+            <tr>
+                <th>Day</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th class="actions">Actions</th>
+            </tr>
+            {% for slot in availability %}
+            <tr>
+                <td><strong>{{ days[slot.day_of_week] }}</strong></td>
+                <td>{{ slot.start_time }}</td>
+                <td>{{ slot.end_time }}</td>
+                <td class="actions">
+                    <form method="POST" action="/admin/availability/delete/{{ slot.id }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to remove this availability?');">
+                        <button type="submit" class="btn btn-small btn-danger">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No availability set. Add your working hours to start accepting bookings!</p>
+    {% endif %}
+
+    <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+        <strong>Tip:</strong> You can add multiple time slots for the same day (e.g., morning and afternoon sessions with a lunch break).
+    </div>
+{% endblock %}

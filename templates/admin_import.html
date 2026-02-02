@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Import Bookings{% endblock %}
+
+{% block content %}
+    <h1>Import Bookings from CSV</h1>
+
+    {% if import_complete %}
+        <!-- Import Results -->
+        <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="margin-top: 0; color: #155724;">Import Complete</h2>
+            <p><strong>{{ imported_count }}</strong> booking(s) imported successfully.</p>
+            {% if error_count > 0 %}
+                <p><strong>{{ error_count }}</strong> row(s) skipped due to errors.</p>
+            {% endif %}
+        </div>
+
+        {% if import_errors %}
+            <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: #721c24;">Errors</h3>
+                <ul style="margin-bottom: 0;">
+                    {% for error in import_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <a href="/admin/bookings" class="btn btn-success">View Bookings</a>
+        <a href="/admin/import" class="btn">Import More</a>
+
+    {% elif show_preview %}
+        <!-- Preview Data -->
+        <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <strong>Preview Summary:</strong>
+            <span class="badge badge-success">{{ valid_count }} valid</span>
+            {% if error_count > 0 %}
+                <span class="badge badge-danger">{{ error_count }} with errors</span>
+            {% endif %}
+            <span style="margin-left: 10px;">Total: {{ total_count }} rows</span>
+        </div>
+
+        <h2>Data Preview</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <tr>
+                    <th>Row</th>
+                    <th>Status</th>
+                    <th>Customer</th>
+                    <th>Email</th>
+                    <th>Service</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Notes</th>
+                </tr>
+                {% for item in preview_data %}
+                <tr style="{% if not item.valid %}background-color: #fff3cd;{% endif %}">
+                    <td>{{ item.row_num }}</td>
+                    <td>
+                        {% if item.valid %}
+                            <span class="badge badge-success">Valid</span>
+                        {% else %}
+                            <span class="badge badge-danger">Error</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.data.customer_name or '-' }}</td>
+                    <td>{{ item.data.customer_email or '-' }}</td>
+                    <td>{{ item.data.service_name or '-' }}</td>
+                    <td>{{ item.data.booking_date or '-' }}</td>
+                    <td>{{ item.data.booking_time or '-' }}</td>
+                    <td>
+                        {% if not item.valid %}
+                            <small style="color: #721c24;">
+                                {% for error in item.errors %}
+                                    {{ error }}<br>
+                                {% endfor %}
+                            </small>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        {% if valid_count > 0 %}
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <form method="POST" action="/admin/import/confirm" style="display: inline;">
+                    <button type="submit" class="btn btn-success">Import {{ valid_count }} Valid Booking(s)</button>
+                </form>
+                <a href="/admin/import" class="btn" style="margin-left: 10px;">Cancel</a>
+                <p style="margin-top: 10px; margin-bottom: 0; color: #666;">
+                    <small>Only valid rows will be imported. Rows with errors will be skipped.</small>
+                </p>
+            </div>
+        {% else %}
+            <div style="margin-top: 20px;">
+                <a href="/admin/import" class="btn">Go Back</a>
+            </div>
+        {% endif %}
+
+    {% else %}
+        <!-- Upload Form -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
+            <div>
+                <h2>Upload CSV File</h2>
+                <form method="POST" action="/admin/import/preview" enctype="multipart/form-data">
+                    <label>Select CSV File:</label>
+                    <input type="file" name="csv_file" accept=".csv" required style="padding: 10px; background: white;">
+
+                    <button type="submit" class="btn-success">Upload & Preview</button>
+                </form>
+
+                <div style="margin-top: 30px;">
+                    <a href="/admin/import/sample.csv" class="btn">Download Sample CSV</a>
+                </div>
+            </div>
+
+            <div>
+                <h2>CSV Format Requirements</h2>
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <p style="margin-top: 0;"><strong>Required columns:</strong></p>
+                    <ul>
+                        <li><code>customer_name</code> - Customer's full name</li>
+                        <li><code>customer_email</code> - Customer's email address</li>
+                        <li><code>service_name</code> - Exact service name (must match existing service)</li>
+                        <li><code>booking_date</code> - Date in YYYY-MM-DD format (e.g., 2025-02-15)</li>
+                        <li><code>booking_time</code> - Time in HH:MM 24-hour format (e.g., 09:00, 14:30)</li>
+                    </ul>
+
+                    <p><strong>Optional columns:</strong></p>
+                    <ul>
+                        <li><code>customer_phone</code> - Customer's phone number</li>
+                    </ul>
+
+                    <p style="margin-bottom: 0;"><strong>Example row:</strong></p>
+                    <code style="display: block; padding: 10px; background: #e9ecef; border-radius: 4px; margin-top: 5px; font-size: 12px; overflow-x: auto;">
+                        John Smith,john@example.com,555-1234,Consultation,2025-02-15,09:00
+                    </code>
+                </div>
+
+                {% if services %}
+                    <h3 style="margin-top: 20px;">Available Services</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                        <p style="margin-top: 0; color: #666;"><small>Use these exact names in your CSV:</small></p>
+                        <ul style="margin-bottom: 0;">
+                            {% for service in services %}
+                                <li><code>{{ service.name }}</code> ({{ service.duration_minutes }} min)</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% else %}
+                    <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+                        <strong>Warning:</strong> No services found. Please <a href="/admin/services/add">add a service</a> before importing bookings.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

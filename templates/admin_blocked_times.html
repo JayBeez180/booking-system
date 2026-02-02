@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Blocked Times{% endblock %}
+
+{% block content %}
+    <h1>Blocked Times</h1>
+    <p>Block out times for breaks, lunch, days off, holidays, etc.</p>
+
+    <a href="/admin/blocked-times/add" class="btn btn-success">+ Add Blocked Time</a>
+
+    {% if recurring_blocks %}
+    <h2>Recurring Weekly Blocks</h2>
+    <p style="color: #666;">These blocks repeat every week on the specified day.</p>
+    <table>
+        <tr>
+            <th>Day</th>
+            <th>Time</th>
+            <th>Reason</th>
+            <th class="actions">Actions</th>
+        </tr>
+        {% for block in recurring_blocks %}
+        <tr>
+            <td><strong>{{ days[block.recurring_day_of_week] }}</strong></td>
+            <td>
+                {% if block.is_all_day %}
+                    <span class="badge badge-warning">All Day</span>
+                {% else %}
+                    {{ block.start_time }} - {{ block.end_time }}
+                {% endif %}
+            </td>
+            <td>{{ block.reason or '-' }}</td>
+            <td class="actions">
+                <form method="POST" action="/admin/blocked-times/delete/{{ block.id }}" style="display: inline;" onsubmit="return confirm('Delete this recurring block?');">
+                    <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <h2>Upcoming Blocked Times</h2>
+    {% if blocked_times %}
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Reason</th>
+                <th class="actions">Actions</th>
+            </tr>
+            {% for block in blocked_times %}
+            {% if not block.is_recurring_weekly %}
+            <tr>
+                <td><strong>{{ block.date.strftime('%A, %d %B %Y') }}</strong></td>
+                <td>
+                    {% if block.is_all_day %}
+                        <span class="badge badge-warning">All Day</span>
+                    {% else %}
+                        {{ block.start_time }} - {{ block.end_time }}
+                    {% endif %}
+                </td>
+                <td>{{ block.reason or '-' }}</td>
+                <td class="actions">
+                    <form method="POST" action="/admin/blocked-times/delete/{{ block.id }}" style="display: inline;" onsubmit="return confirm('Delete this blocked time?');">
+                        <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No upcoming blocked times.</p>
+    {% endif %}
+
+    <div style="margin-top: 30px; padding: 20px; background: #e8f4fd; border-radius: 8px;">
+        <h3 style="margin-top: 0;">Quick Tips</h3>
+        <ul style="margin-bottom: 0;">
+            <li><strong>Single block:</strong> Block a specific time slot on a specific date (e.g., dentist appointment)</li>
+            <li><strong>Date range:</strong> Block multiple consecutive days (e.g., holiday)</li>
+            <li><strong>Recurring:</strong> Block the same time every week (e.g., lunch break every day)</li>
+            <li><strong>All day:</strong> Block an entire day with no time slots available</li>
+        </ul>
+    </div>
+{% endblock %}

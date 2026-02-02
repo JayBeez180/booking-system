@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} - Client Profile{% endblock %}
+
+{% block content %}
+    <p><a href="/admin/clients">&larr; Back to Clients</a></p>
+
+    <h1>{{ client.name }}</h1>
+
+    <!-- Client Info Card -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <h3 style="margin-top: 0;">Contact Information</h3>
+            <p>
+                <strong>Email:</strong> <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+                {% if client.emails and client.emails|length > 1 %}
+                    <br><small style="color: #666;">Also used:
+                    {% for email in client.emails if email != client.email.lower() %}
+                        {{ email }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                    </small>
+                {% endif %}
+            </p>
+            <p>
+                <strong>Phone:</strong> {{ client.phone or 'Not provided' }}
+                {% if client.phones and client.phones|length > 1 %}
+                    <br><small style="color: #666;">Also used:
+                    {% for phone in client.phones if phone != client.phone %}
+                        {{ phone }}{% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                    </small>
+                {% endif %}
+            </p>
+        </div>
+
+        <div style="background: #e8f4fd; padding: 20px; border-radius: 8px;">
+            <h3 style="margin-top: 0;">Booking Summary</h3>
+            <p><strong>Total Bookings:</strong> {{ client.total_bookings }}</p>
+            <p>
+                <span class="badge badge-success">{{ client.confirmed_bookings }} confirmed</span>
+                {% if client.no_show_count > 0 %}
+                    <span class="badge badge-warning">{{ client.no_show_count }} no-show{{ 's' if client.no_show_count > 1 else '' }}</span>
+                {% endif %}
+                {% if client.cancelled_bookings > 0 %}
+                    <span class="badge badge-danger">{{ client.cancelled_bookings }} cancelled</span>
+                {% endif %}
+            </p>
+            <p><strong>First Visit:</strong> {{ client.first_visit }}</p>
+            <p style="margin-bottom: 0;"><strong>Last Visit:</strong> {{ client.last_visit }}</p>
+        </div>
+
+        <div style="background: #e8f8f0; padding: 20px; border-radius: 8px;">
+            <h3 style="margin-top: 0;">Revenue</h3>
+            <p style="font-size: 24px; font-weight: bold; color: #27ae60; margin: 10px 0;">
+                £{{ "%.2f"|format(client.total_spent) }}
+            </p>
+            <p style="margin-bottom: 0; color: #666;">Total spent (confirmed bookings)</p>
+        </div>
+    </div>
+
+    <!-- Admin Notes Section -->
+    <div style="background: #fff9e6; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #f1c40f;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #7d6608;">📝 Staff Notes <small style="font-weight: normal; color: #666;">(not visible to customer)</small></h3>
+            <button type="button" class="btn btn-small" onclick="document.getElementById('addNoteForm').style.display = document.getElementById('addNoteForm').style.display === 'none' ? 'block' : 'none'" style="background: #f1c40f; color: #333;">
+                + Add Note
+            </button>
+        </div>
+
+        <!-- Add Note Form (hidden by default) -->
+        <div id="addNoteForm" style="display: none; background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <form method="POST" action="{{ url_for('add_client_note') }}">
+                <input type="hidden" name="client_email" value="{{ client.email }}">
+                <input type="hidden" name="client_name" value="{{ client.name }}">
+                <input type="hidden" name="redirect_url" value="{{ request.url }}">
+
+                <div style="margin-bottom: 10px;">
+                    <label>Note:</label>
+                    <textarea name="note" rows="3" required placeholder="Add notes about this client (e.g., wheelchair user, always late, prefers specific jewellery, etc.)" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="is_alert" style="width: auto;">
+                        <span style="color: #e74c3c;">⚠️ Mark as Alert</span>
+                        <small style="color: #666;">(will show prominently in calendar)</small>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-small" style="background: #27ae60;">Save Note</button>
+                    <button type="button" class="btn btn-small" onclick="document.getElementById('addNoteForm').style.display = 'none'" style="background: #95a5a6;">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Existing Notes -->
+        {% if notes %}
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                {% for note in notes %}
+                    <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid {% if note.is_alert %}#e74c3c{% else %}#3498db{% endif %};">
+                        <div style="display: flex; justify-content: space-between; align-items: start; gap: 15px;">
+                            <div style="flex: 1;">
+                                {% if note.is_alert %}
+                                    <span style="background: #e74c3c; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 8px;">⚠️ ALERT</span>
+                                {% endif %}
+                                <span style="white-space: pre-wrap;">{{ note.note }}</span>
+                                <div style="margin-top: 8px; font-size: 12px; color: #666;">
+                                    Added {{ note.created_at.strftime('%d %b %Y at %H:%M') }}
+                                    {% if note.updated_at and note.updated_at != note.created_at %}
+                                        (edited {{ note.updated_at.strftime('%d %b %Y') }})
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 5px;">
+                                <button type="button" class="btn btn-small" onclick="editNote({{ note.id }}, '{{ note.note | e }}', {{ 'true' if note.is_alert else 'false' }})" style="background: #3498db; padding: 5px 10px; font-size: 12px;">Edit</button>
+                                <form method="POST" action="{{ url_for('delete_client_note', note_id=note.id) }}" style="margin: 0;" onsubmit="return confirm('Delete this note?');">
+                                    <input type="hidden" name="redirect_url" value="{{ request.url }}">
+                                    <button type="submit" class="btn btn-small" style="background: #e74c3c; padding: 5px 10px; font-size: 12px;">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: #666; margin: 0;">No notes yet. Add notes about accessibility needs, preferences, or anything important to remember.</p>
+        {% endif %}
+    </div>
+
+    <!-- Edit Note Modal -->
+    <div id="editNoteModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 25px; border-radius: 8px; max-width: 500px; width: 90%;">
+            <h3 style="margin-top: 0;">Edit Note</h3>
+            <form id="editNoteFormInner" method="POST">
+                <input type="hidden" name="redirect_url" value="{{ request.url }}">
+
+                <div style="margin-bottom: 10px;">
+                    <label>Note:</label>
+                    <textarea id="editNoteText" name="note" rows="4" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="editNoteAlert" name="is_alert" style="width: auto;">
+                        <span style="color: #e74c3c;">⚠️ Mark as Alert</span>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-small" style="background: #27ae60;">Save Changes</button>
+                    <button type="button" class="btn btn-small" onclick="closeEditNoteModal()" style="background: #95a5a6;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function editNote(noteId, noteText, isAlert) {
+            document.getElementById('editNoteFormInner').action = '/admin/client-notes/edit/' + noteId;
+            document.getElementById('editNoteText').value = noteText;
+            document.getElementById('editNoteAlert').checked = isAlert;
+            document.getElementById('editNoteModal').style.display = 'flex';
+        }
+
+        function closeEditNoteModal() {
+            document.getElementById('editNoteModal').style.display = 'none';
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeEditNoteModal();
+            }
+        });
+
+        // Close modal on background click
+        document.getElementById('editNoteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditNoteModal();
+            }
+        });
+    </script>
+
+    <!-- Email Actions -->
+    <div style="background: #f0e6ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #9b59b6;">
+        <h3 style="margin-top: 0; color: #6c3483;">📧 Email Actions</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+            <form method="POST" action="{{ url_for('send_manual_followup', client_email=client.email) }}" style="margin: 0;" onsubmit="return confirm('Send the 6-week follow-up email to {{ client.email }}?');">
+                <button type="submit" class="btn btn-small" style="background: #9b59b6; color: white;">
+                    📬 Send 6-Week Follow-up Email
+                </button>
+            </form>
+            <span style="color: #666; font-size: 13px;">
+                Sends the downsize reminder & aftercare check-in email
+            </span>
+        </div>
+    </div>
+
+    <!-- Services Used -->
+    {% if client.services_used %}
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+        <h3 style="margin-top: 0;">Services Used</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            {% for service_name, count in client.services_used.items() %}
+                <span style="background: white; padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd;">
+                    {{ service_name }} <strong>({{ count }})</strong>
+                </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Booking History -->
+    <h2>Booking History</h2>
+    {% if bookings %}
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Service</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Booked On</th>
+            </tr>
+            {% for booking in bookings %}
+            <tr>
+                <td><strong>{{ booking.booking_date }}</strong></td>
+                <td>{{ booking.booking_time }} - {{ booking.end_time }}</td>
+                <td>{{ booking.service.name }}</td>
+                <td>{% if booking.service.price %}£{{ "%.2f"|format(booking.service.price) }}{% else %}-{% endif %}</td>
+                <td>
+                    {% if booking.status == 'confirmed' %}
+                        <span class="badge badge-success">Confirmed</span>
+                    {% elif booking.status == 'cancelled' %}
+                        <span class="badge badge-danger">Cancelled</span>
+                    {% elif booking.status == 'no_show' %}
+                        <span class="badge badge-warning">No-Show</span>
+                    {% elif booking.status == 'completed' %}
+                        <span class="badge badge-success">Completed</span>
+                    {% else %}
+                        <span class="badge">{{ booking.status }}</span>
+                    {% endif %}
+                </td>
+                <td><small>{{ booking.created_at.strftime('%Y-%m-%d %H:%M') if booking.created_at else '-' }}</small></td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No booking history.</p>
+    {% endif %}
+{% endblock %}

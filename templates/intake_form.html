@@ -1,0 +1,119 @@
+{% extends "customer_base.html" %}
+
+{% block title %}Intake Form - White Thorn Piercing{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Client Intake Form</h1>
+    <p class="subtitle">Please complete this form to confirm your booking</p>
+
+    {% set date_parts = pending.booking_date.split('-') %}
+    <div class="card" style="margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <h3 style="margin: 0; color: var(--gold);">{{ service.name }}</h3>
+                <p style="margin: 5px 0 0 0; color: rgba(245, 241, 232, 0.7);">
+                    {{ date_parts[2] }}/{{ date_parts[1] }}/{{ date_parts[0] }} at {{ pending.booking_time }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if user %}
+    <div class="alert alert-success" style="margin-bottom: 20px;">
+        <strong>Welcome back, {{ user.name.split()[0] }}!</strong> Your details have been pre-filled.
+    </div>
+    {% endif %}
+
+    <form method="POST">
+        <!-- Personal Information -->
+        <div class="card">
+            <h2 style="margin-top: 0;">Personal Information</h2>
+
+            <label>Full Legal Name *</label>
+            <input type="text" name="full_name" required placeholder="As it appears on your ID" value="{{ user.name if user else '' }}">
+
+            <label>Date of Birth *</label>
+            <input type="date" name="date_of_birth" required max="{{ today }}" id="dob-input" value="{{ user.date_of_birth.strftime('%Y-%m-%d') if user and user.date_of_birth else '' }}">
+
+            <label>Email *</label>
+            <input type="email" name="email" required placeholder="your@email.com" value="{{ user.email if user else '' }}" {% if user %}readonly style="background: rgba(255,255,255,0.02); cursor: not-allowed;"{% endif %}>
+
+            <label>Phone *</label>
+            <input type="tel" name="phone" required placeholder="(555) 123-4567" value="{{ user.phone if user and user.phone else '' }}">
+        </div>
+
+        <!-- Age Verification -->
+        <div class="card" style="margin-top: 20px;">
+            <h2 style="margin-top: 0;">Age Verification</h2>
+
+            <label>Government ID Type *</label>
+            <select name="id_type" required>
+                <option value="">-- Select ID Type --</option>
+                <option value="drivers_license">Driver's License</option>
+                <option value="passport">Passport</option>
+                <option value="state_id">State ID</option>
+                <option value="military_id">Military ID</option>
+            </select>
+
+            <p style="color: rgba(245, 241, 232, 0.6); margin-top: 15px; font-size: 14px;">
+                You will be required to present valid government-issued photo ID at your appointment.
+            </p>
+
+            <div id="minor-section" style="display: none; background: rgba(201, 169, 98, 0.15); padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid rgba(201, 169, 98, 0.3);">
+                <h3 style="margin-top: 0; color: var(--gold);">Parent/Guardian Information</h3>
+                <p style="font-size: 14px; color: rgba(245, 241, 232, 0.7); margin-bottom: 15px;">Required for clients under 18 years of age</p>
+
+                <label>Parent/Guardian Name *</label>
+                <input type="text" name="parent_guardian_name" placeholder="Full legal name">
+
+                <label>Parent/Guardian Phone *</label>
+                <input type="tel" name="parent_guardian_phone" placeholder="(555) 123-4567">
+
+                <label class="checkbox-label" style="margin-top: 20px; cursor: pointer;">
+                    <input type="checkbox" name="parental_consent" value="yes">
+                    <span>Parent/Guardian will be present at the appointment and provide written consent</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Declaration -->
+        <div class="card" style="margin-top: 20px; background: rgba(201, 169, 98, 0.1); border-color: rgba(201, 169, 98, 0.4);">
+            <h2 style="margin-top: 0;">Declaration</h2>
+
+            <label class="checkbox-label" style="cursor: pointer;">
+                <input type="checkbox" name="declaration_confirmed" value="yes" required>
+                <span>I confirm that all information provided above is true and accurate to the best of my knowledge. *</span>
+            </label>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center;">
+            <button type="submit" style="font-size: 16px; padding: 18px 50px;">Complete Booking</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Show/hide minor section based on date of birth
+    document.getElementById('dob-input').addEventListener('change', function() {
+        const dob = new Date(this.value);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+
+        const minorSection = document.getElementById('minor-section');
+        if (age < 18) {
+            minorSection.style.display = 'block';
+            minorSection.querySelector('input[name="parent_guardian_name"]').required = true;
+            minorSection.querySelector('input[name="parent_guardian_phone"]').required = true;
+        } else {
+            minorSection.style.display = 'none';
+            minorSection.querySelector('input[name="parent_guardian_name"]').required = false;
+            minorSection.querySelector('input[name="parent_guardian_phone"]').required = false;
+        }
+    });
+</script>
+{% endblock %}

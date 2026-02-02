@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Clients{% endblock %}
+
+{% block content %}
+    <h1>Clients</h1>
+
+    <!-- Search Form -->
+    <form method="GET" action="/admin/clients" style="margin-bottom: 20px; max-width: 100%;">
+        <div style="display: flex; gap: 10px; align-items: flex-end;">
+            <div style="flex: 1;">
+                <label style="margin-top: 0;">Search Clients:</label>
+                <input type="text" name="search" value="{{ search }}" placeholder="Search by name, email, or phone..." style="margin-top: 5px;">
+            </div>
+            <button type="submit" style="margin-top: 0;">Search</button>
+            {% if search %}
+                <a href="/admin/clients" class="btn" style="margin-top: 0;">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+
+    {% if search %}
+        <p style="color: #666;">Showing results for "{{ search }}"</p>
+    {% endif %}
+
+    {% if clients %}
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Total Bookings</th>
+                <th>Last Visit</th>
+                <th>Actions</th>
+            </tr>
+            {% for client in clients %}
+            <tr>
+                <td><strong>{{ client.name }}</strong></td>
+                <td>
+                    {{ client.email }}
+                    {% if client.emails|length > 1 %}
+                        <span class="badge badge-warning" title="{{ client.emails|join(', ') }}">+{{ client.emails|length - 1 }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ client.phone or '-' }}
+                    {% if client.phones|length > 1 %}
+                        <span class="badge badge-warning" title="{{ client.phones|join(', ') }}">+{{ client.phones|length - 1 }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-success">{{ client.confirmed_bookings }} confirmed</span>
+                    {% if client.no_show_count > 0 %}
+                        <span class="badge badge-warning" title="No-shows">{{ client.no_show_count }} no-show{{ 's' if client.no_show_count > 1 else '' }}</span>
+                    {% endif %}
+                    {% if client.cancelled_bookings > 0 %}
+                        <span class="badge badge-danger">{{ client.cancelled_bookings }} cancelled</span>
+                    {% endif %}
+                </td>
+                <td>{{ client.last_booking }}</td>
+                <td>
+                    <a href="/admin/clients/{{ client.email }}" class="btn btn-small">View Profile</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <p style="margin-top: 20px; color: #666;">
+            Showing {{ clients|length }} client(s)
+        </p>
+    {% else %}
+        {% if search %}
+            <p>No clients found matching "{{ search }}".</p>
+        {% else %}
+            <p>No clients yet. Clients will appear here after they make bookings.</p>
+        {% endif %}
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "customer_base.html" %}
+
+{% block title %}Upcoming Appointments - White Thorn Piercing{% endblock %}
+
+{% block content %}
+<div class="container">
+    <p><a href="{{ url_for('customer_dashboard') }}" style="color: var(--gold);">&larr; Back to Dashboard</a></p>
+
+    <h1>Upcoming Appointments</h1>
+    <p class="subtitle">Manage your scheduled appointments</p>
+
+    {% if appointments %}
+        {% for apt in appointments %}
+        <div class="card" style="margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+                <div style="flex: 1; min-width: 200px;">
+                    <h3 style="color: var(--gold); margin: 0 0 10px 0;">{{ apt.service.name }}</h3>
+                    <div style="margin-bottom: 8px;">
+                        <svg width="16" height="16" fill="none" stroke="var(--gold)" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 8px;">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>{{ apt.booking_date.strftime('%A, %d %B %Y') }}</span>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <svg width="16" height="16" fill="none" stroke="var(--gold)" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 8px;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>{{ apt.booking_time }} - {{ apt.end_time }}</span>
+                    </div>
+                    {% if apt.service.price %}
+                    <div style="color: var(--gold); font-weight: 600;">
+                        £{{ "%.2f"|format(apt.service.price) }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div style="text-align: right;">
+                    {% if apt.can_modify %}
+                        <a href="{{ url_for('customer_reschedule', booking_id=apt.id) }}" class="btn btn-secondary" style="margin: 5px; padding: 10px 20px;">Reschedule</a>
+                        <form method="POST" action="{{ url_for('customer_cancel', booking_id=apt.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                            <button type="submit" style="background: transparent; border: 1px solid #e74c3c; color: #e74c3c; margin: 5px; padding: 10px 20px;">Cancel</button>
+                        </form>
+                    {% else %}
+                        <div style="color: rgba(245, 241, 232, 0.6); font-size: 14px; padding: 10px;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align: middle; margin-right: 5px;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                            Less than 24 hours away<br>
+                            <span style="font-size: 13px;">Contact us to make changes</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="alert alert-info" style="margin-top: 30px;">
+            <strong>Need to make changes?</strong><br>
+            Appointments can be rescheduled or cancelled up to 24 hours before your scheduled time. For appointments within 24 hours, please contact us directly.
+        </div>
+    {% else %}
+        <div class="card" style="text-align: center; padding: 40px;">
+            <p style="color: rgba(245, 241, 232, 0.7); margin-bottom: 20px;">You don't have any upcoming appointments.</p>
+            <a href="{{ url_for('booking_page') }}" class="btn">Book an Appointment</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

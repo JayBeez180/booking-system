@@ -1,0 +1,110 @@
+{% extends "customer_base.html" %}
+
+{% block title %}Reschedule Appointment - White Thorn Piercing{% endblock %}
+
+{% block content %}
+<div class="container">
+    <p><a href="{{ url_for('customer_appointments') }}" style="color: var(--gold);">&larr; Back to Appointments</a></p>
+
+    <h1>Reschedule Appointment</h1>
+    <p class="subtitle">Choose a new date and time for your appointment</p>
+
+    <!-- Current Booking Details -->
+    <div class="card" style="margin: 30px 0; border-color: var(--gold);">
+        <h3 style="color: var(--gold); margin-top: 0;">Current Appointment</h3>
+        <div style="display: grid; gap: 10px;">
+            <div><strong>Service:</strong> {{ service.name }}</div>
+            <div><strong>Date:</strong> {{ booking.booking_date.strftime('%A, %d %B %Y') }}</div>
+            <div><strong>Time:</strong> {{ booking.booking_time }} - {{ booking.end_time }}</div>
+            <div><strong>Duration:</strong> {{ service.duration_minutes }} minutes</div>
+        </div>
+    </div>
+
+    <!-- Reschedule Form -->
+    <form method="POST" id="rescheduleForm">
+        <h2>Select New Date & Time</h2>
+
+        <label>New Date *</label>
+        <input type="date" name="booking_date" id="bookingDate" required min="{{ today }}" max="{{ max_date }}">
+
+        <div id="slotsContainer" style="display: none; margin-top: 20px;">
+            <label>Available Times *</label>
+            <div id="availableSlots" class="slots-grid"></div>
+            <input type="hidden" name="booking_time" id="selectedTime" required>
+        </div>
+
+        <div id="noSlotsMessage" style="display: none; margin-top: 20px;">
+            <div class="alert alert-info">
+                No available times on this date. Please select another date.
+            </div>
+        </div>
+
+        <div id="loadingMessage" style="display: none; margin-top: 20px; text-align: center; color: var(--gold);">
+            Loading available times...
+        </div>
+
+        <div style="margin-top: 30px; display: flex; gap: 15px; flex-wrap: wrap;">
+            <button type="submit" id="submitBtn" disabled>Confirm Reschedule</button>
+            <a href="{{ url_for('customer_appointments') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    const serviceId = {{ service.id }};
+    const serviceDuration = {{ service.duration_minutes }};
+    const currentBookingId = {{ booking.id }};
+
+    document.getElementById('bookingDate').addEventListener('change', function() {
+        const date = this.value;
+        if (!date) return;
+
+        document.getElementById('slotsContainer').style.display = 'none';
+        document.getElementById('noSlotsMessage').style.display = 'none';
+        document.getElementById('loadingMessage').style.display = 'block';
+        document.getElementById('selectedTime').value = '';
+        document.getElementById('submitBtn').disabled = true;
+
+        // Fetch available slots
+        fetch(`/api/available-slots?service_id=${serviceId}&date=${date}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingMessage').style.display = 'none';
+
+                if (data.slots && data.slots.length > 0) {
+                    const slotsContainer = document.getElementById('availableSlots');
+                    slotsContainer.innerHTML = '';
+
+                    data.slots.forEach(slot => {
+                        const btn = document.createElement('div');
+                        btn.className = 'slot-btn';
+                        btn.textContent = slot.start;
+                        btn.onclick = function() {
+                            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+                            this.classList.add('selected');
+                            document.getElementById('selectedTime').value = slot.start;
+                            document.getElementById('submitBtn').disabled = false;
+                        };
+                        slotsContainer.appendChild(btn);
+                    });
+
+                    document.getElementById('slotsContainer').style.display = 'block';
+                } else {
+                    document.getElementById('noSlotsMessage').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('noSlotsMessage').style.display = 'block';
+                console.error('Error fetching slots:', error);
+            });
+    });
+
+    document.getElementById('rescheduleForm').addEventListener('submit', function(e) {
+        if (!document.getElementById('selectedTime').value) {
+            e.preventDefault();
+            alert('Please select a time slot.');
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "customer_base.html" %}
+
+{% block title %}Aftercare Advice - White Thorn Piercing{% endblock %}
+
+{% block content %}
+<div class="container">
+    <p><a href="{{ url_for('customer_dashboard') }}" style="color: var(--gold);">&larr; Back to Dashboard</a></p>
+
+    <h1>Aftercare Advice</h1>
+    <p class="subtitle">Care instructions for your piercings</p>
+
+    {% if services_with_aftercare %}
+        <h2 style="margin-top: 30px;">Your Piercings</h2>
+        <p style="color: rgba(245, 241, 232, 0.7); margin-bottom: 20px;">Aftercare guides for services you've had with us:</p>
+
+        {% for item in services_with_aftercare %}
+        <a href="{{ url_for('customer_aftercare_detail', aftercare_id=item.aftercare.id) }}" class="card" style="display: block; text-decoration: none; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h3 style="color: var(--gold); margin: 0 0 5px 0;">{{ item.aftercare.title }}</h3>
+                    <div style="color: rgba(245, 241, 232, 0.6); font-size: 14px;">
+                        {{ item.service.name }} &bull; Last appointment: {{ item.last_booking.strftime('%d %B %Y') }}
+                    </div>
+                </div>
+                <div style="color: var(--gold);">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="card" style="text-align: center; padding: 40px; margin-top: 30px;">
+            <p style="color: rgba(245, 241, 232, 0.7); margin-bottom: 10px;">No aftercare guides available yet.</p>
+            <p style="color: rgba(245, 241, 232, 0.5); font-size: 14px;">Aftercare advice will appear here after your appointments.</p>
+        </div>
+    {% endif %}
+
+    {% if general_aftercare %}
+        <h2 style="margin-top: 40px;">General Aftercare</h2>
+        <p style="color: rgba(245, 241, 232, 0.7); margin-bottom: 20px;">General advice for all piercings:</p>
+
+        {% for aftercare in general_aftercare %}
+        <a href="{{ url_for('customer_aftercare_detail', aftercare_id=aftercare.id) }}" class="card" style="display: block; text-decoration: none; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color: var(--gold); margin: 0;">{{ aftercare.title }}</h3>
+                <div style="color: var(--gold);">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

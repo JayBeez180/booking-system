@@ -1,0 +1,43 @@
+{% extends "customer_base.html" %}
+
+{% block title %}White Thorn Piercing - Professional Body Piercing{% endblock %}
+
+{% block content %}
+<div class="container" style="text-align: center;">
+    <h1>Welcome</h1>
+    <p class="subtitle">Professional body piercing in a safe, sterile environment</p>
+
+    <div class="divider"></div>
+
+    <div style="max-width: 600px; margin: 0 auto;">
+        <p style="font-size: 17px; line-height: 1.8; margin-bottom: 30px;">
+            At White Thorn Piercing, we combine artistry with the highest standards of safety and hygiene.
+            Our experienced piercers are dedicated to making your piercing experience comfortable and memorable.
+        </p>
+
+        <a href="/book" class="btn" style="font-size: 16px; padding: 18px 50px;">
+            Book Your Appointment
+        </a>
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; margin-top: 30px; text-align: center;">
+        <div>
+            <div style="font-size: 36px; color: var(--gold); margin-bottom: 10px;">&#10022;</div>
+            <h3>Sterile Environment</h3>
+            <p style="font-size: 14px; color: rgba(245, 241, 232, 0.7);">Hospital-grade sterilization and single-use equipment</p>
+        </div>
+        <div>
+            <div style="font-size: 36px; color: var(--gold); margin-bottom: 10px;">&#10022;</div>
+            <h3>Expert Piercers</h3>
+            <p style="font-size: 14px; color: rgba(245, 241, 232, 0.7);">Years of professional experience and ongoing training</p>
+        </div>
+        <div>
+            <div style="font-size: 36px; color: var(--gold); margin-bottom: 10px;">&#10022;</div>
+            <h3>Premium Jewelry</h3>
+            <p style="font-size: 14px; color: rgba(245, 241, 232, 0.7);">High-quality, implant-grade materials only</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

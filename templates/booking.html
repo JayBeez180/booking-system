@@ -1,0 +1,232 @@
+{% extends "customer_base.html" %}
+
+{% block title %}Book an Appointment - White Thorn Piercing{% endblock %}
+
+{% block content %}
+<style>
+    .category-accordion {
+        margin-bottom: 10px;
+    }
+
+    .category-header {
+        background: rgba(201, 169, 98, 0.15);
+        border: 1px solid rgba(201, 169, 98, 0.3);
+        border-radius: 8px;
+        padding: 15px 20px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+
+    .category-header:hover {
+        background: rgba(201, 169, 98, 0.25);
+        border-color: var(--gold);
+    }
+
+    .category-header h3 {
+        margin: 0;
+        color: var(--gold);
+        font-family: 'Cinzel', serif;
+        font-size: 18px;
+    }
+
+    .category-header .service-count {
+        color: rgba(245, 241, 232, 0.6);
+        font-size: 14px;
+    }
+
+    .category-header .arrow {
+        color: var(--gold);
+        font-size: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .category-header.open .arrow {
+        transform: rotate(180deg);
+    }
+
+    .category-services {
+        display: none;
+        padding: 10px 0;
+    }
+
+    .category-services.open {
+        display: block;
+    }
+
+    .category-services .service-card {
+        margin-bottom: 10px;
+    }
+
+    .category-services .service-card:last-child {
+        margin-bottom: 0;
+    }
+</style>
+
+<div class="container">
+    <h1>Book an Appointment</h1>
+    <p class="subtitle">Select your service and preferred time</p>
+
+    {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    {% if not selected_service %}
+        <!-- Step 1: Choose service and date -->
+        <form method="POST" action="/book/slots">
+            <label>Choose a Service</label>
+
+            {% set has_services = (categories and categories|selectattr('services')|list) or uncategorized %}
+
+            {% if has_services %}
+                <div style="margin-bottom: 20px;">
+                    {% for category in categories %}
+                        {% set active_services = category.services | selectattr('is_active') | list %}
+                        {% if active_services %}
+                            <div class="category-accordion">
+                                <div class="category-header" onclick="toggleCategory(this)">
+                                    <div>
+                                        <h3>{{ category.name }}</h3>
+                                        <span class="service-count">{{ active_services|length }} service{{ 's' if active_services|length != 1 else '' }}</span>
+                                    </div>
+                                    <span class="arrow">▼</span>
+                                </div>
+                                <div class="category-services">
+                                    {% for service in active_services %}
+                                        <div class="service-card" onclick="selectService(this, {{ service.id }}); event.stopPropagation();" style="cursor: pointer;">
+                                            <div class="service-info">
+                                                <h3>{{ service.name }}</h3>
+                                                <p>{{ service.duration_minutes }} minutes{% if service.description %} &bull; {{ service.description }}{% endif %}</p>
+                                            </div>
+                                            <div class="service-price">
+                                                {% if service.price %}£{{ "%.2f"|format(service.price) }}{% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if uncategorized %}
+                        <div class="category-accordion">
+                            <div class="category-header" onclick="toggleCategory(this)">
+                                <div>
+                                    <h3>Other Services</h3>
+                                    <span class="service-count">{{ uncategorized|length }} service{{ 's' if uncategorized|length != 1 else '' }}</span>
+                                </div>
+                                <span class="arrow">▼</span>
+                            </div>
+                            <div class="category-services">
+                                {% for service in uncategorized %}
+                                    <div class="service-card" onclick="selectService(this, {{ service.id }}); event.stopPropagation();" style="cursor: pointer;">
+                                        <div class="service-info">
+                                            <h3>{{ service.name }}</h3>
+                                            <p>{{ service.duration_minutes }} minutes{% if service.description %} &bull; {{ service.description }}{% endif %}</p>
+                                        </div>
+                                        <div class="service-price">
+                                            {% if service.price %}£{{ "%.2f"|format(service.price) }}{% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                <input type="hidden" name="service_id" id="selected_service_id">
+                <script>
+                    function toggleCategory(header) {
+                        const wasOpen = header.classList.contains('open');
+
+                        // Close all categories
+                        document.querySelectorAll('.category-header').forEach(h => {
+                            h.classList.remove('open');
+                            h.nextElementSibling.classList.remove('open');
+                        });
+
+                        // If it wasn't open, open it
+                        if (!wasOpen) {
+                            header.classList.add('open');
+                            header.nextElementSibling.classList.add('open');
+                        }
+                    }
+
+                    function selectService(card, serviceId) {
+                        document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+                        card.classList.add('selected');
+                        document.getElementById('selected_service_id').value = serviceId;
+                    }
+
+                    document.querySelector('form').addEventListener('submit', function(e) {
+                        if (!document.getElementById('selected_service_id').value) {
+                            e.preventDefault();
+                            alert('Please select a service');
+                        }
+                    });
+                </script>
+            {% else %}
+                <div class="alert alert-info">
+                    No services available at this time. Please check back later or contact us directly.
+                </div>
+            {% endif %}
+
+            <label>Choose a Date</label>
+            <input type="date" name="booking_date" required min="{{ today }}" max="{{ max_date }}" value="{{ today }}">
+
+            {% if has_services %}
+                <button type="submit">Check Availability</button>
+            {% endif %}
+        </form>
+
+    {% else %}
+        <!-- Step 2: Choose time slot and enter details -->
+        <div class="card" style="margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h3 style="margin: 0; color: var(--gold);">{{ selected_service.name }}</h3>
+                    <p style="margin: 5px 0 0 0; color: rgba(245, 241, 232, 0.7);">
+                        {{ selected_date }} &bull; {{ selected_service.duration_minutes }} minutes
+                    </p>
+                </div>
+                {% if selected_service.price %}
+                    <div style="font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold);">
+                        £{{ "%.2f"|format(selected_service.price) }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if available_slots %}
+            <form method="POST" action="/book/confirm">
+                <input type="hidden" name="service_id" value="{{ selected_service.id }}">
+                <input type="hidden" name="booking_date" value="{{ selected_date }}">
+
+                <label>Choose a Time</label>
+                <div class="slots-grid">
+                    {% for slot in available_slots %}
+                        <label class="slot-btn">
+                            <input type="radio" name="booking_time" value="{{ slot.start }}" required style="display: none;" onchange="document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected')); this.closest('.slot-btn').classList.add('selected');">
+                            {{ slot.start }}
+                        </label>
+                    {% endfor %}
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <button type="submit">Next Step</button>
+                </div>
+            </form>
+
+            <div style="margin-top: 25px;">
+                <a href="/book" class="btn btn-secondary" style="margin-top: 0;">&#8592; Choose Different Service</a>
+            </div>
+        {% else %}
+            <div class="alert alert-error">
+                Sorry, no available slots for this date. Please try another date.
+            </div>
+            <a href="/book" class="btn">Try Another Date</a>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

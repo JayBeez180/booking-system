@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Add Booking{% endblock %}
+
+{% block content %}
+    <p><a href="/admin/calendar?view=day&date={{ booking_date }}">&larr; Back to Calendar</a></p>
+
+    <h1>Add Booking</h1>
+
+    <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <strong>Date:</strong> {{ booking_date }} &nbsp; | &nbsp;
+        <strong>Time:</strong> {{ booking_time }}
+    </div>
+
+    <form method="POST" style="max-width: 600px;">
+        <input type="hidden" name="booking_date" value="{{ booking_date }}">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>Start Time: *</label>
+                <input type="time" name="booking_time" value="{{ booking_time }}" required>
+            </div>
+
+            <div>
+                <label>Service: *</label>
+                <select name="service_id" required style="width: 100%;">
+                    <option value="">Select a service...</option>
+                    {% for category in categories %}
+                        {% set category_services = services | selectattr('category_id', 'equalto', category.id) | list %}
+                        {% if category_services %}
+                            <optgroup label="{{ category.name }}">
+                                {% for service in category_services %}
+                                    <option value="{{ service.id }}">
+                                        {{ service.name }} ({{ service.duration_minutes }} min - £{{ "%.2f"|format(service.price) }})
+                                    </option>
+                                {% endfor %}
+                            </optgroup>
+                        {% endif %}
+                    {% endfor %}
+                    {% set uncategorized = services | selectattr('category_id', 'none') | list %}
+                    {% if uncategorized %}
+                        <optgroup label="Other">
+                            {% for service in uncategorized %}
+                                <option value="{{ service.id }}">
+                                    {{ service.name }} ({{ service.duration_minutes }} min - £{{ "%.2f"|format(service.price) }})
+                                </option>
+                            {% endfor %}
+                        </optgroup>
+                    {% endif %}
+                </select>
+            </div>
+        </div>
+
+        <hr style="margin: 25px 0; border: none; border-top: 1px solid #ddd;">
+
+        <h3 style="margin-top: 0;">Customer Details</h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <label>Full Name: *</label>
+                <input type="text" name="customer_name" required placeholder="Customer name">
+            </div>
+
+            <div>
+                <label>Email: *</label>
+                <input type="email" name="customer_email" required placeholder="customer@email.com">
+            </div>
+
+            <div>
+                <label>Phone:</label>
+                <input type="tel" name="customer_phone" placeholder="Phone number">
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <label>Notes (optional):</label>
+            <textarea name="notes" rows="3" placeholder="Any additional notes..."></textarea>
+        </div>
+
+        <div style="margin-top: 25px; display: flex; gap: 10px;">
+            <button type="submit" class="btn" style="background: #27ae60;">Add Booking</button>
+            <a href="/admin/calendar?view=day&date={{ booking_date }}" class="btn" style="background: #95a5a6;">Cancel</a>
+        </div>
+    </form>
+{% endblock %}
