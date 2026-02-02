@@ -246,6 +246,20 @@
     /* Default color if no category matches */
     .booking-block { background: #00d4aa; color: #1a1a2e; }
 
+    /* Month view booking blocks - override absolute positioning */
+    .month-view-cell .booking-block {
+        position: relative;
+        left: auto;
+        right: auto;
+        z-index: auto;
+        transform: none;
+        border-left: none;
+    }
+    .month-view-cell .booking-block:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
     .booking-block.no-show {
         opacity: 0.6;
         text-decoration: line-through;
@@ -730,7 +744,7 @@
 
     <div style="display: grid; grid-template-columns: repeat(7, 1fr); background: var(--cal-dark-green);">
         {% for day in calendar_data %}
-        <div style="min-height: 100px; padding: 8px; border: 1px solid rgba(201, 169, 98, 0.2); cursor: pointer; {% if not day.is_current_month %}opacity: 0.5;{% endif %} {% if day.is_today %}background: rgba(201, 169, 98, 0.15);{% endif %}"
+        <div class="month-view-cell" style="min-height: 100px; padding: 8px; border: 1px solid rgba(201, 169, 98, 0.2); cursor: pointer; {% if not day.is_current_month %}opacity: 0.5;{% endif %} {% if day.is_today %}background: rgba(201, 169, 98, 0.15);{% endif %}"
              onclick="window.location.href='?view=day&date={{ day.date.isoformat() }}'">
             <div style="font-weight: 600; color: {% if day.is_today %}var(--cal-gold){% else %}var(--cal-cream){% endif %}; margin-bottom: 5px;">
                 {{ day.date.day }}
