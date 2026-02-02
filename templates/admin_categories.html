@@ -8,7 +8,23 @@
         background: #f8f9fa;
         border-radius: 8px;
         padding: 20px;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
+        cursor: grab;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+
+    .category-card:hover {
+        border-color: #3498db;
+    }
+
+    .category-card.sortable-ghost {
+        opacity: 0.4;
+        background: #e8f4fd;
+    }
+
+    .category-card.sortable-drag {
+        cursor: grabbing;
     }
 
     .category-header {
@@ -18,6 +34,18 @@
         margin-bottom: 15px;
         padding-bottom: 10px;
         border-bottom: 1px solid #ddd;
+    }
+
+    .category-header-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .drag-handle {
+        color: #999;
+        font-size: 20px;
+        cursor: grab;
     }
 
     .category-header h3 {
@@ -131,19 +159,42 @@
         border-color: #27ae60;
         cursor: default;
     }
+
+    .reorder-info {
+        background: #d4edda;
+        color: #155724;
+        padding: 10px 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 </style>
 
     <h1>Manage Categories</h1>
 
-    <p>Organise your services into categories. Click "Move" on any service to change its category.</p>
+    <p>Organise your services into categories. Drag categories to reorder them, or click "Move" on any service to change its category.</p>
 
     <a href="/admin/categories/add" class="btn btn-success" style="margin-bottom: 20px;">+ Add New Category</a>
+    <a href="/admin/services" class="btn" style="margin-bottom: 20px; margin-left: 10px;">Back to Services</a>
 
+    <div class="reorder-info">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span><strong>Tip:</strong> Drag categories by the ☰ handle to reorder them. Changes save automatically.</span>
+    </div>
+
+    <div id="categories-container">
     {% if categories %}
         {% for category in categories %}
-        <div class="category-card">
+        <div class="category-card" data-category-id="{{ category.id }}">
             <div class="category-header">
-                <h3>{{ category.name }}</h3>
+                <div class="category-header-left">
+                    <span class="drag-handle">☰</span>
+                    <h3>{{ category.name }}</h3>
+                </div>
                 <div>
                     <a href="/admin/categories/edit/{{ category.id }}" class="btn btn-small">Rename</a>
                     <form method="POST" action="/admin/categories/delete/{{ category.id }}" style="display: inline;" onsubmit="return confirm('Are you sure? Services in this category will become uncategorised.');">
@@ -175,12 +226,15 @@
     {% else %}
         <p>No categories yet. Add your first category to organise your services!</p>
     {% endif %}
+    </div>
 
     <!-- Uncategorised Services -->
     {% if uncategorised %}
-    <div class="category-card" style="background: #fff3cd; border: 1px solid #f1c40f;">
+    <div class="category-card" style="background: #fff3cd; border: 2px solid #f1c40f; cursor: default;">
         <div class="category-header">
-            <h3 style="color: #856404;">⚠️ Uncategorised</h3>
+            <div class="category-header-left">
+                <h3 style="color: #856404;">⚠️ Uncategorised</h3>
+            </div>
         </div>
 
         <div class="service-list">
@@ -228,7 +282,53 @@
     </div>
 </div>
 
+<!-- SortableJS from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
+    // Initialize sortable on categories container
+    const categoriesContainer = document.getElementById('categories-container');
+    if (categoriesContainer) {
+        new Sortable(categoriesContainer, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onEnd: function(evt) {
+                // Get all category IDs in new order
+                const categoryIds = Array.from(categoriesContainer.querySelectorAll('.category-card'))
+                    .map(card => parseInt(card.dataset.categoryId))
+                    .filter(id => !isNaN(id));
+
+                // Send to server
+                fetch('/admin/categories/reorder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        order: categoryIds
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Brief visual feedback
+                        evt.item.style.borderColor = '#27ae60';
+                        evt.item.style.background = '#d4edda';
+                        setTimeout(() => {
+                            evt.item.style.borderColor = '';
+                            evt.item.style.background = '';
+                        }, 500);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving order:', error);
+                    alert('Failed to save order. Please refresh and try again.');
+                });
+            }
+        });
+    }
+
     function openMoveModal(serviceId, serviceName, currentCategoryId) {
         document.getElementById('moveServiceId').value = serviceId;
         document.getElementById('moveServiceName').textContent = serviceName;

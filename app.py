@@ -556,6 +556,21 @@ def move_service_category(service_id):
     return redirect(url_for('admin_services'))
 
 
+@app.route('/admin/services/reorder', methods=['POST'])
+@login_required
+def reorder_services():
+    """Reorder services within a category via AJAX"""
+    order = request.json.get('order', [])
+    category_id = request.json.get('category_id')  # Can be None for uncategorized
+
+    for index, service_id in enumerate(order):
+        service = Service.query.get(service_id)
+        if service:
+            service.display_order = index
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 # ==================== ADMIN: AVAILABILITY ====================
 
 @app.route('/admin/availability')

@@ -43,7 +43,7 @@ class Category(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    services = db.relationship('Service', backref='category', lazy=True)
+    services = db.relationship('Service', backref='category', lazy=True, order_by='Service.display_order')
 
     def __repr__(self):
         return f'<Category {self.name}>'

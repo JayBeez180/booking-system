@@ -3,82 +3,191 @@
 {% block title %}Manage Services{% endblock %}
 
 {% block content %}
+<style>
+    .category-section {
+        margin-top: 30px;
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #3498db;
+    }
+
+    .category-section.uncategorized {
+        background: #fff3cd;
+        border-left-color: #ffc107;
+    }
+
+    .category-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .category-header h2 {
+        margin: 0;
+        color: #2c3e50;
+    }
+
+    .sortable-list {
+        min-height: 50px;
+    }
+
+    .service-row {
+        display: flex;
+        align-items: center;
+        background: white;
+        padding: 12px 15px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        border: 1px solid #e0e0e0;
+        cursor: grab;
+        transition: all 0.2s;
+    }
+
+    .service-row:hover {
+        border-color: #3498db;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .service-row.sortable-ghost {
+        opacity: 0.4;
+        background: #e8f4fd;
+    }
+
+    .service-row.sortable-drag {
+        cursor: grabbing;
+    }
+
+    .drag-handle {
+        color: #999;
+        margin-right: 15px;
+        font-size: 18px;
+        cursor: grab;
+    }
+
+    .service-info {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .service-name {
+        font-weight: 600;
+        min-width: 200px;
+    }
+
+    .service-details {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .service-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .reorder-info {
+        background: #d4edda;
+        color: #155724;
+        padding: 10px 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .reorder-info svg {
+        flex-shrink: 0;
+    }
+</style>
+
     <h1>Manage Services</h1>
 
     <a href="/admin/services/add" class="btn btn-success">+ Add New Service</a>
     <a href="/admin/categories" class="btn" style="margin-left: 10px;">Manage Categories</a>
 
+    <div class="reorder-info" style="margin-top: 20px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span><strong>Tip:</strong> Drag and drop services to reorder them within each category. Changes save automatically.</span>
+    </div>
+
     {% if categories %}
         {% for category in categories %}
             {% set active_services = category.services | selectattr('is_active') | list %}
             {% if active_services %}
-            <div style="margin-top: 30px; background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db;">
-                <h2 style="margin-top: 0; color: #2c3e50;">{{ category.name }}</h2>
-                <table style="margin-top: 10px;">
-                    <tr>
-                        <th>Service Name</th>
-                        <th>Duration</th>
-                        <th>Price</th>
-                        <th>Description</th>
-                        <th class="actions">Actions</th>
-                    </tr>
+            <div class="category-section">
+                <div class="category-header">
+                    <h2>{{ category.name }}</h2>
+                    <span style="color: #666;">{{ active_services|length }} service{{ 's' if active_services|length != 1 else '' }}</span>
+                </div>
+
+                <div class="sortable-list" data-category-id="{{ category.id }}">
                     {% for service in active_services %}
-                    <tr>
-                        <td><strong>{{ service.name }}</strong></td>
-                        <td>{{ service.duration_minutes }} minutes</td>
-                        <td>{% if service.price %}£{{ "%.2f"|format(service.price) }}{% else %}-{% endif %}</td>
-                        <td>{{ service.description[:50] + '...' if service.description and service.description|length > 50 else service.description or '-' }}</td>
-                        <td class="actions">
+                    <div class="service-row" data-service-id="{{ service.id }}">
+                        <span class="drag-handle">☰</span>
+                        <div class="service-info">
+                            <span class="service-name">{{ service.name }}</span>
+                            <span class="service-details">
+                                {{ service.duration_minutes }} mins
+                                {% if service.price %} · £{{ "%.2f"|format(service.price) }}{% endif %}
+                            </span>
+                        </div>
+                        <div class="service-actions">
                             <a href="/admin/services/edit/{{ service.id }}" class="btn btn-small">Edit</a>
                             <form method="POST" action="/admin/services/delete/{{ service.id }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this service?');">
                                 <button type="submit" class="btn btn-small btn-danger">Delete</button>
                             </form>
-                        </td>
-                    </tr>
+                        </div>
+                    </div>
                     {% endfor %}
-                </table>
+                </div>
             </div>
             {% endif %}
         {% endfor %}
     {% endif %}
 
     {% if uncategorized %}
-    <div style="margin-top: 30px; background: #fff3cd; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107;">
-        <h2 style="margin-top: 0; color: #856404;">Uncategorised</h2>
+    <div class="category-section uncategorized">
+        <div class="category-header">
+            <h2 style="color: #856404;">⚠️ Uncategorised</h2>
+            <span style="color: #856404;">{{ uncategorized|length }} service{{ 's' if uncategorized|length != 1 else '' }}</span>
+        </div>
         <p style="color: #856404; margin-bottom: 15px;">These services need to be assigned to a category.</p>
-        <table style="margin-top: 10px;">
-            <tr>
-                <th>Service Name</th>
-                <th>Duration</th>
-                <th>Price</th>
-                <th>Move to Category</th>
-                <th class="actions">Actions</th>
-            </tr>
+
+        <div class="sortable-list" data-category-id="">
             {% for service in uncategorized %}
-            <tr>
-                <td><strong>{{ service.name }}</strong></td>
-                <td>{{ service.duration_minutes }} minutes</td>
-                <td>{% if service.price %}£{{ "%.2f"|format(service.price) }}{% else %}-{% endif %}</td>
-                <td>
-                    <form method="POST" action="/admin/services/move/{{ service.id }}" style="display: flex; gap: 5px; margin: 0;">
-                        <select name="category_id" style="margin: 0; padding: 5px;">
-                            <option value="">-- Select --</option>
+            <div class="service-row" data-service-id="{{ service.id }}">
+                <span class="drag-handle">☰</span>
+                <div class="service-info">
+                    <span class="service-name">{{ service.name }}</span>
+                    <span class="service-details">
+                        {{ service.duration_minutes }} mins
+                        {% if service.price %} · £{{ "%.2f"|format(service.price) }}{% endif %}
+                    </span>
+                </div>
+                <div class="service-actions">
+                    <form method="POST" action="/admin/services/move/{{ service.id }}" style="display: flex; gap: 5px; margin: 0; align-items: center;">
+                        <select name="category_id" style="margin: 0; padding: 5px; font-size: 13px;">
+                            <option value="">Move to...</option>
                             {% for cat in categories %}
                                 <option value="{{ cat.id }}">{{ cat.name }}</option>
                             {% endfor %}
                         </select>
-                        <button type="submit" class="btn btn-small" style="margin: 0;">Move</button>
+                        <button type="submit" class="btn btn-small">Move</button>
                     </form>
-                </td>
-                <td class="actions">
                     <a href="/admin/services/edit/{{ service.id }}" class="btn btn-small">Edit</a>
                     <form method="POST" action="/admin/services/delete/{{ service.id }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this service?');">
                         <button type="submit" class="btn btn-small btn-danger">Delete</button>
                     </form>
-                </td>
-            </tr>
+                </div>
+            </div>
             {% endfor %}
-        </table>
+        </div>
     </div>
     {% endif %}
 
@@ -98,4 +207,50 @@
             <p style="margin-top: 20px;">No services yet. Add your first service to get started!</p>
         {% endif %}
     {% endif %}
+
+<!-- SortableJS from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    // Initialize sortable on each category's service list
+    document.querySelectorAll('.sortable-list').forEach(list => {
+        new Sortable(list, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onEnd: function(evt) {
+                // Get all service IDs in new order
+                const categoryId = list.dataset.categoryId;
+                const serviceIds = Array.from(list.querySelectorAll('.service-row'))
+                    .map(row => parseInt(row.dataset.serviceId));
+
+                // Send to server
+                fetch('/admin/services/reorder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        order: serviceIds,
+                        category_id: categoryId || null
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Brief visual feedback
+                        evt.item.style.background = '#d4edda';
+                        setTimeout(() => {
+                            evt.item.style.background = '';
+                        }, 500);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving order:', error);
+                    alert('Failed to save order. Please refresh and try again.');
+                });
+            }
+        });
+    });
+</script>
 {% endblock %}
