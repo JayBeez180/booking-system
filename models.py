@@ -307,6 +307,7 @@ class Client(db.Model):
 
     # Stats
     total_bookings = db.Column(db.Integer, default=0)
+    first_booking_date = db.Column(db.DateTime, nullable=True)
     last_booking_date = db.Column(db.DateTime, nullable=True)
 
     # Additional info
