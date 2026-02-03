@@ -284,9 +284,6 @@ class ClientNote(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Optional link to Client model (for migration)
-    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=True)
-
     def __repr__(self):
         return f'<ClientNote {self.client_email}>'
 
