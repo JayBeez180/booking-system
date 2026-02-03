@@ -64,6 +64,65 @@
         margin-bottom: 0;
     }
 
+    /* Multi-select service card styling */
+    .service-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(201, 169, 98, 0.2);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .service-card:hover {
+        background: rgba(201, 169, 98, 0.1);
+        border-color: var(--gold);
+    }
+
+    .service-card.selected {
+        background: rgba(201, 169, 98, 0.15);
+        border-color: var(--gold);
+    }
+
+    .service-checkbox {
+        width: 22px;
+        height: 22px;
+        border: 2px solid rgba(201, 169, 98, 0.5);
+        border-radius: 4px;
+        margin-right: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .service-card.selected .service-checkbox {
+        background: var(--gold);
+        border-color: var(--gold);
+    }
+
+    .service-checkbox svg {
+        display: none;
+        width: 14px;
+        height: 14px;
+        fill: var(--darker-green);
+    }
+
+    .service-card.selected .service-checkbox svg {
+        display: block;
+    }
+
+    .service-card-content {
+        display: flex;
+        align-items: center;
+        flex: 1;
+    }
+
     /* Date picker styling */
     .date-picker-section {
         display: none;
@@ -76,48 +135,117 @@
         display: block;
     }
 
-    /* Selected service summary */
-    .selected-service-summary {
+    /* Selected services summary */
+    .selected-services-summary {
         background: rgba(201, 169, 98, 0.15);
         border: 1px solid var(--gold);
         border-radius: 8px;
         padding: 15px 20px;
         margin-bottom: 20px;
+    }
+
+    .selected-services-summary h3 {
+        margin: 0 0 12px 0;
+        color: var(--gold);
+        font-size: 16px;
+    }
+
+    .selected-service-item {
         display: flex;
         justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(201, 169, 98, 0.2);
         align-items: center;
-        flex-wrap: wrap;
+    }
+
+    .selected-service-item:last-of-type {
+        border-bottom: none;
+    }
+
+    .selected-service-item .name {
+        color: var(--cream);
+    }
+
+    .selected-service-item .duration {
+        color: rgba(245, 241, 232, 0.6);
+        font-size: 13px;
+    }
+
+    .selected-service-item .price {
+        color: var(--gold);
+        font-family: 'Cinzel', serif;
+    }
+
+    .selected-service-item .remove-btn {
+        background: transparent;
+        border: none;
+        color: rgba(231, 76, 60, 0.8);
+        cursor: pointer;
+        padding: 4px 8px;
+        margin: 0;
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .selected-service-item .remove-btn:hover {
+        color: #e74c3c;
+    }
+
+    .summary-totals {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(201, 169, 98, 0.3);
+    }
+
+    .summary-total-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px 0;
+    }
+
+    .summary-total-row .label {
+        color: rgba(245, 241, 232, 0.7);
+    }
+
+    .summary-total-row .value {
+        color: var(--gold);
+        font-weight: 600;
+    }
+
+    .summary-total-row.grand-total {
+        font-size: 18px;
+    }
+
+    .summary-total-row.grand-total .value {
+        font-family: 'Cinzel', serif;
+        font-size: 22px;
+    }
+
+    .summary-actions {
+        margin-top: 15px;
+        display: flex;
         gap: 10px;
     }
 
-    .selected-service-summary h3 {
-        margin: 0;
-        color: var(--gold);
-    }
-
-    .selected-service-summary .details {
-        color: rgba(245, 241, 232, 0.7);
-        font-size: 14px;
-        margin-top: 3px;
-    }
-
-    .selected-service-summary .price {
-        font-family: 'Cinzel', serif;
-        font-size: 22px;
-        color: var(--gold);
-    }
-
-    .change-service-btn {
+    .add-more-btn {
+        flex: 1;
         font-size: 13px;
-        padding: 6px 12px;
+        padding: 10px 15px;
         margin: 0;
         background: transparent;
         border: 1px solid var(--gold);
         color: var(--gold);
     }
 
-    .change-service-btn:hover {
+    .add-more-btn:hover {
         background: rgba(201, 169, 98, 0.2);
+    }
+
+    .continue-booking-btn {
+        flex: 2;
+        font-size: 13px;
+        padding: 10px 15px;
+        margin: 0;
     }
 
     /* Time slots section */
@@ -268,34 +396,57 @@
         color: var(--darker-green);
         border-color: var(--gold);
     }
+
+    /* Multi-service hint */
+    .multi-service-hint {
+        background: rgba(201, 169, 98, 0.1);
+        border: 1px solid rgba(201, 169, 98, 0.2);
+        border-radius: 6px;
+        padding: 12px 15px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        color: rgba(245, 241, 232, 0.7);
+    }
+
+    .multi-service-hint strong {
+        color: var(--gold);
+    }
 </style>
 
 <div class="container">
     <h1>Book an Appointment</h1>
-    <p class="subtitle">Select your service, date and time</p>
+    <p class="subtitle">Select your services, date and time</p>
 
     {% if error %}
         <div class="alert alert-error">{{ error }}</div>
     {% endif %}
 
-    <!-- Selected Service Summary (shown after selection) -->
-    <div id="selectedServiceSummary" class="selected-service-summary" style="display: none;">
-        <div>
-            <h3 id="summaryServiceName"></h3>
-            <div class="details">
-                <span id="summaryDuration"></span> minutes
-                <span id="summaryDescription"></span>
+    <!-- Selected Services Summary (shown when services are selected) -->
+    <div id="selectedServicesSummary" class="selected-services-summary" style="display: none;">
+        <h3>Your Selected Services</h3>
+        <div id="selectedServicesList"></div>
+        <div class="summary-totals">
+            <div class="summary-total-row">
+                <span class="label">Total Duration:</span>
+                <span class="value" id="totalDuration">0 minutes</span>
+            </div>
+            <div class="summary-total-row grand-total">
+                <span class="label">Total Price:</span>
+                <span class="value" id="totalPrice">£0.00</span>
             </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <span class="price" id="summaryPrice"></span>
-            <button type="button" class="btn change-service-btn" id="changeServiceBtn">Change</button>
+        <div class="summary-actions">
+            <button type="button" class="btn add-more-btn" id="addMoreBtn">+ Add Another Service</button>
+            <button type="button" class="btn continue-booking-btn" id="continueToDateBtn">Choose Date & Time →</button>
         </div>
     </div>
 
     <!-- Step 1: Service Selection -->
     <div id="serviceSelection">
-        <label>Choose a Service</label>
+        <label>Choose Your Services</label>
+        <div class="multi-service-hint">
+            <strong>Tip:</strong> You can select multiple services to book them together. Your appointment duration will be the combined time of all selected services.
+        </div>
 
         {% set has_services = (categories and categories|selectattr('services')|list) or uncategorized %}
 
@@ -319,11 +470,15 @@
                                          data-service-name="{{ service.name }}"
                                          data-service-duration="{{ service.duration_minutes }}"
                                          data-service-description="{{ service.description or '' }}"
-                                         data-service-price="{{ service.price or 0 }}"
-                                         style="cursor: pointer;">
-                                        <div class="service-info">
-                                            <h3>{{ service.name }}</h3>
-                                            <p>{{ service.duration_minutes }} minutes{% if service.description %} &bull; {{ service.description }}{% endif %}</p>
+                                         data-service-price="{{ service.price or 0 }}">
+                                        <div class="service-card-content">
+                                            <div class="service-checkbox">
+                                                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                            </div>
+                                            <div class="service-info">
+                                                <h3>{{ service.name }}</h3>
+                                                <p>{{ service.duration_minutes }} minutes{% if service.description %} &bull; {{ service.description }}{% endif %}</p>
+                                            </div>
                                         </div>
                                         <div class="service-price">
                                             {% if service.price %}£{{ "%.2f"|format(service.price) }}{% endif %}
@@ -351,11 +506,15 @@
                                      data-service-name="{{ service.name }}"
                                      data-service-duration="{{ service.duration_minutes }}"
                                      data-service-description="{{ service.description or '' }}"
-                                     data-service-price="{{ service.price or 0 }}"
-                                     style="cursor: pointer;">
-                                    <div class="service-info">
-                                        <h3>{{ service.name }}</h3>
-                                        <p>{{ service.duration_minutes }} minutes{% if service.description %} &bull; {{ service.description }}{% endif %}</p>
+                                     data-service-price="{{ service.price or 0 }}">
+                                    <div class="service-card-content">
+                                        <div class="service-checkbox">
+                                            <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                        </div>
+                                        <div class="service-info">
+                                            <h3>{{ service.name }}</h3>
+                                            <p>{{ service.duration_minutes }} minutes{% if service.description %} &bull; {{ service.description }}{% endif %}</p>
+                                        </div>
                                     </div>
                                     <div class="service-price">
                                         {% if service.price %}£{{ "%.2f"|format(service.price) }}{% endif %}
@@ -373,7 +532,7 @@
         {% endif %}
     </div>
 
-    <!-- Step 2: Date Selection (shown after service selected) -->
+    <!-- Step 2: Date Selection (shown after services confirmed) -->
     <div id="dateSelection" class="date-picker-section">
         <label>Choose a Date</label>
 
@@ -404,8 +563,8 @@
     <div id="continueSection" class="continue-section">
         <div class="booking-summary">
             <div class="summary-line">
-                <span class="label">Service:</span>
-                <span id="finalService"></span>
+                <span class="label">Services:</span>
+                <span id="finalServices"></span>
             </div>
             <div class="summary-line">
                 <span class="label">Date:</span>
@@ -415,26 +574,27 @@
                 <span class="label">Time:</span>
                 <span id="finalTime"></span>
             </div>
+            <div class="summary-line">
+                <span class="label">Duration:</span>
+                <span id="finalDuration"></span>
+            </div>
         </div>
 
         <form id="continueForm" method="POST" action="/book/confirm">
-            <input type="hidden" name="service_id" id="formServiceId">
+            <input type="hidden" name="service_ids" id="formServiceIds">
             <input type="hidden" name="booking_date" id="formBookingDate">
             <input type="hidden" name="booking_time" id="formBookingTime">
+            <input type="hidden" name="total_duration" id="formTotalDuration">
             <button type="submit">Continue to Details →</button>
         </form>
     </div>
 </div>
 
 <script>
-    // State
-    let selectedServiceId = null;
-    let selectedServiceName = '';
-    let selectedServiceDuration = 0;
-    let selectedServiceDescription = '';
-    let selectedServicePrice = 0;
-    let selectedDate = '{{ today }}';
-    let selectedTime = null;
+    // State - now tracking multiple services
+    var selectedServices = []; // Array of {id, name, duration, description, price}
+    var selectedDate = '{{ today }}';
+    var selectedTime = null;
 
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -450,14 +610,20 @@
         document.querySelectorAll('.service-card').forEach(function(card) {
             card.addEventListener('click', function(e) {
                 e.stopPropagation();
-                selectService(this);
+                toggleService(this);
             });
         });
 
-        // Change service button handler
-        document.getElementById('changeServiceBtn').addEventListener('click', function(e) {
+        // Add more services button
+        document.getElementById('addMoreBtn').addEventListener('click', function(e) {
             e.stopPropagation();
-            changeService();
+            showServiceSelection();
+        });
+
+        // Continue to date/time button
+        document.getElementById('continueToDateBtn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            proceedToDateSelection();
         });
 
         // Date input handler
@@ -483,56 +649,139 @@
         }
     }
 
-    // Service selection
-    function selectService(card) {
-        // Get data from data attributes
-        selectedServiceId = card.getAttribute('data-service-id');
-        selectedServiceName = card.getAttribute('data-service-name');
-        selectedServiceDuration = parseInt(card.getAttribute('data-service-duration'));
-        selectedServiceDescription = card.getAttribute('data-service-description');
-        selectedServicePrice = parseFloat(card.getAttribute('data-service-price'));
-        selectedTime = null;
+    // Toggle service selection
+    function toggleService(card) {
+        var serviceId = card.getAttribute('data-service-id');
+        var serviceName = card.getAttribute('data-service-name');
+        var serviceDuration = parseInt(card.getAttribute('data-service-duration'));
+        var serviceDescription = card.getAttribute('data-service-description');
+        var servicePrice = parseFloat(card.getAttribute('data-service-price')) || 0;
 
-        // Visual feedback
-        document.querySelectorAll('.service-card').forEach(function(c) {
-            c.classList.remove('selected');
+        // Check if already selected
+        var existingIndex = -1;
+        for (var i = 0; i < selectedServices.length; i++) {
+            if (selectedServices[i].id === serviceId) {
+                existingIndex = i;
+                break;
+            }
+        }
+
+        if (existingIndex >= 0) {
+            // Remove from selection
+            selectedServices.splice(existingIndex, 1);
+            card.classList.remove('selected');
+        } else {
+            // Add to selection
+            selectedServices.push({
+                id: serviceId,
+                name: serviceName,
+                duration: serviceDuration,
+                description: serviceDescription,
+                price: servicePrice
+            });
+            card.classList.add('selected');
+        }
+
+        // Reset time selection when services change
+        selectedTime = null;
+        document.getElementById('continueSection').classList.remove('show');
+
+        // Update summary display
+        updateServicesSummary();
+    }
+
+    // Remove service from selection
+    function removeService(serviceId) {
+        // Find and remove from array
+        for (var i = 0; i < selectedServices.length; i++) {
+            if (selectedServices[i].id === serviceId) {
+                selectedServices.splice(i, 1);
+                break;
+            }
+        }
+
+        // Update card visual state
+        document.querySelectorAll('.service-card').forEach(function(card) {
+            if (card.getAttribute('data-service-id') === serviceId) {
+                card.classList.remove('selected');
+            }
         });
-        card.classList.add('selected');
+
+        // Reset time selection
+        selectedTime = null;
+        document.getElementById('continueSection').classList.remove('show');
 
         // Update summary
-        document.getElementById('summaryServiceName').textContent = selectedServiceName;
-        document.getElementById('summaryDuration').textContent = selectedServiceDuration;
-        document.getElementById('summaryDescription').textContent = selectedServiceDescription ? ' • ' + selectedServiceDescription : '';
-        document.getElementById('summaryPrice').textContent = selectedServicePrice > 0 ? '£' + selectedServicePrice.toFixed(2) : '';
+        updateServicesSummary();
 
-        // Show/hide sections
-        document.getElementById('selectedServiceSummary').style.display = 'flex';
+        // If no services left, go back to service selection
+        if (selectedServices.length === 0) {
+            showServiceSelection();
+        }
+    }
+
+    // Update the services summary display
+    function updateServicesSummary() {
+        var summaryDiv = document.getElementById('selectedServicesSummary');
+        var listDiv = document.getElementById('selectedServicesList');
+
+        if (selectedServices.length === 0) {
+            summaryDiv.style.display = 'none';
+            return;
+        }
+
+        // Build list HTML
+        var listHTML = '';
+        var totalDuration = 0;
+        var totalPrice = 0;
+
+        selectedServices.forEach(function(service) {
+            totalDuration += service.duration;
+            totalPrice += service.price;
+
+            listHTML += '<div class="selected-service-item">' +
+                '<div>' +
+                    '<div class="name">' + escapeHtml(service.name) + '</div>' +
+                    '<div class="duration">' + service.duration + ' minutes</div>' +
+                '</div>' +
+                '<div style="display: flex; align-items: center; gap: 15px;">' +
+                    (service.price > 0 ? '<span class="price">£' + service.price.toFixed(2) + '</span>' : '') +
+                    '<button type="button" class="remove-btn" onclick="removeService(\'' + service.id + '\')" title="Remove">×</button>' +
+                '</div>' +
+            '</div>';
+        });
+
+        listDiv.innerHTML = listHTML;
+        document.getElementById('totalDuration').textContent = totalDuration + ' minutes';
+        document.getElementById('totalPrice').textContent = '£' + totalPrice.toFixed(2);
+
+        summaryDiv.style.display = 'block';
+    }
+
+    // Show service selection (for adding more)
+    function showServiceSelection() {
+        document.getElementById('serviceSelection').style.display = 'block';
+        document.getElementById('dateSelection').classList.remove('show');
+        document.getElementById('timeSlotsSection').classList.remove('show');
+        document.getElementById('continueSection').classList.remove('show');
+    }
+
+    // Proceed to date/time selection
+    function proceedToDateSelection() {
+        if (selectedServices.length === 0) {
+            alert('Please select at least one service.');
+            return;
+        }
+
         document.getElementById('serviceSelection').style.display = 'none';
         document.getElementById('dateSelection').classList.add('show');
         document.getElementById('timeSlotsSection').classList.add('show');
-        document.getElementById('continueSection').classList.remove('show');
 
         // Generate quick date buttons
         generateQuickDates();
 
         // Load slots for current date
         loadAvailableSlots();
-    }
-
-    // Change service (go back)
-    function changeService() {
-        selectedServiceId = null;
-        selectedTime = null;
-
-        document.querySelectorAll('.service-card').forEach(function(c) {
-            c.classList.remove('selected');
-        });
-
-        document.getElementById('selectedServiceSummary').style.display = 'none';
-        document.getElementById('serviceSelection').style.display = 'block';
-        document.getElementById('dateSelection').classList.remove('show');
-        document.getElementById('timeSlotsSection').classList.remove('show');
-        document.getElementById('continueSection').classList.remove('show');
     }
 
     // Generate quick date buttons (Today, Tomorrow, + next 5 days)
@@ -583,9 +832,18 @@
         loadAvailableSlots();
     }
 
-    // Load available slots for selected date
+    // Calculate total duration of selected services
+    function getTotalDuration() {
+        var total = 0;
+        selectedServices.forEach(function(service) {
+            total += service.duration;
+        });
+        return total;
+    }
+
+    // Load available slots for selected date with total duration
     function loadAvailableSlots() {
-        if (!selectedServiceId) return;
+        if (selectedServices.length === 0) return;
 
         selectedDate = document.getElementById('bookingDate').value;
         selectedTime = null;
@@ -601,8 +859,14 @@
         document.getElementById('noSlotsMessage').style.display = 'none';
         document.getElementById('continueSection').classList.remove('show');
 
-        // Fetch slots
-        fetch('/api/available-slots?service_id=' + selectedServiceId + '&date=' + selectedDate)
+        // Calculate total duration
+        var totalDuration = getTotalDuration();
+
+        // Build service IDs string
+        var serviceIds = selectedServices.map(function(s) { return s.id; }).join(',');
+
+        // Fetch slots with total duration
+        fetch('/api/available-slots?service_ids=' + serviceIds + '&date=' + selectedDate + '&total_duration=' + totalDuration)
             .then(function(response) {
                 return response.json();
             })
@@ -653,20 +917,33 @@
         var options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
         var formattedDate = dateObj.toLocaleDateString('en-GB', options);
 
-        document.getElementById('finalService').textContent = selectedServiceName;
+        var serviceNames = selectedServices.map(function(s) { return s.name; }).join(', ');
+        var totalDuration = getTotalDuration();
+
+        document.getElementById('finalServices').textContent = serviceNames;
         document.getElementById('finalDate').textContent = formattedDate;
         document.getElementById('finalTime').textContent = time;
+        document.getElementById('finalDuration').textContent = totalDuration + ' minutes';
 
         // Update form
-        document.getElementById('formServiceId').value = selectedServiceId;
+        var serviceIds = selectedServices.map(function(s) { return s.id; }).join(',');
+        document.getElementById('formServiceIds').value = serviceIds;
         document.getElementById('formBookingDate').value = selectedDate;
         document.getElementById('formBookingTime').value = time;
+        document.getElementById('formTotalDuration').value = totalDuration;
 
         // Show continue section
         document.getElementById('continueSection').classList.add('show');
 
         // Scroll to continue section
         document.getElementById('continueSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Helper to escape HTML
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 </script>
 {% endblock %}

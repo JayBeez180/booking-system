@@ -9,11 +9,39 @@
 
     {% set date_parts = pending.booking_date.split('-') %}
     <div class="card" style="margin-bottom: 25px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <div>
-                <h3 style="margin: 0; color: var(--gold);">{{ service.name }}</h3>
-                <p style="margin: 5px 0 0 0; color: rgba(245, 241, 232, 0.7);">
-                    {{ date_parts[2] }}/{{ date_parts[1] }}/{{ date_parts[0] }} at {{ pending.booking_time }}
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+            <div style="flex: 1;">
+                {% if all_services and all_services|length > 1 %}
+                    <h3 style="margin: 0 0 10px 0; color: var(--gold);">Your Services</h3>
+                    {% for svc in all_services %}
+                        <div style="padding: 8px 0; {% if not loop.last %}border-bottom: 1px solid rgba(201, 169, 98, 0.2);{% endif %}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>{{ svc.name }}</span>
+                                {% if svc.price %}<span style="color: var(--gold);">£{{ "%.2f"|format(svc.price) }}</span>{% endif %}
+                            </div>
+                            <span style="font-size: 13px; color: rgba(245, 241, 232, 0.5);">{{ svc.duration_minutes }} min</span>
+                        </div>
+                    {% endfor %}
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(201, 169, 98, 0.3);">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: rgba(245, 241, 232, 0.7);">Total Duration:</span>
+                            <span style="font-weight: 600;">{{ total_duration }} minutes</span>
+                        </div>
+                        {% if total_price %}
+                        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                            <span style="color: rgba(245, 241, 232, 0.7);">Total Price:</span>
+                            <span style="font-weight: 600; color: var(--gold); font-size: 18px;">£{{ "%.2f"|format(total_price) }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <h3 style="margin: 0; color: var(--gold);">{{ service.name }}</h3>
+                    <p style="margin: 5px 0 0 0; color: rgba(245, 241, 232, 0.7);">
+                        {{ service.duration_minutes }} minutes{% if service.price %} • £{{ "%.2f"|format(service.price) }}{% endif %}
+                    </p>
+                {% endif %}
+                <p style="margin: 15px 0 0 0; color: rgba(245, 241, 232, 0.7);">
+                    📅 {{ date_parts[2] }}/{{ date_parts[1] }}/{{ date_parts[0] }} at {{ pending.booking_time }}
                 </p>
             </div>
         </div>

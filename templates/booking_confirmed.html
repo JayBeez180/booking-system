@@ -16,10 +16,24 @@
     <div class="booking-details" style="text-align: left; max-width: 500px; margin: 30px auto;">
         <h3 style="color: var(--gold); margin-top: 0; margin-bottom: 20px; text-align: center;">Appointment Details</h3>
 
+        {% if all_services and all_services|length > 1 %}
+        <!-- Multi-service booking -->
+        <div style="margin-bottom: 15px;">
+            <span class="detail-label" style="display: block; margin-bottom: 10px;">Services</span>
+            {% for svc in all_services %}
+            <div style="display: flex; justify-content: space-between; padding: 8px 0; {% if not loop.last %}border-bottom: 1px solid rgba(201, 169, 98, 0.15);{% endif %}">
+                <span class="detail-value">{{ svc.name }}</span>
+                {% if svc.price %}<span style="color: var(--gold);">£{{ "%.2f"|format(svc.price) }}</span>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
         <div class="detail-row">
             <span class="detail-label">Service</span>
             <span class="detail-value">{{ service.name }}</span>
         </div>
+        {% endif %}
+
         <div class="detail-row">
             <span class="detail-label">Date</span>
             <span class="detail-value">{{ booking.booking_date }}</span>
@@ -30,9 +44,14 @@
         </div>
         <div class="detail-row">
             <span class="detail-label">Duration</span>
-            <span class="detail-value">{{ service.duration_minutes }} minutes</span>
+            <span class="detail-value">{{ total_duration or service.duration_minutes }} minutes</span>
         </div>
-        {% if service.price %}
+        {% if all_services and all_services|length > 1 and total_price %}
+        <div class="detail-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(201, 169, 98, 0.3);">
+            <span class="detail-label">Total Price</span>
+            <span class="detail-value" style="color: var(--gold); font-size: 18px;">£{{ "%.2f"|format(total_price) }}</span>
+        </div>
+        {% elif service.price %}
         <div class="detail-row">
             <span class="detail-label">Price</span>
             <span class="detail-value" style="color: var(--gold);">£{{ "%.2f"|format(service.price) }}</span>

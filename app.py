@@ -284,6 +284,50 @@ def get_available_slots_for_date(service, booking_date_obj):
     return slots
 
 
+def get_available_slots_for_duration(duration_minutes, booking_date_obj):
+    """
+    Generate available time slots for a given duration and date.
+    Used for multi-service bookings where we need to calculate based on total duration.
+    """
+    # First check if the entire day is blocked
+    if is_day_fully_blocked(booking_date_obj):
+        return []
+
+    day_of_week = booking_date_obj.weekday()
+
+    # Get availability for this day
+    availability = Availability.query.filter_by(
+        day_of_week=day_of_week,
+        is_active=True
+    ).all()
+
+    if not availability:
+        return []
+
+    slots = []
+
+    for avail in availability:
+        start_mins = time_to_minutes(avail.start_time)
+        end_mins = time_to_minutes(avail.end_time)
+
+        # Generate slots at 30-minute intervals
+        current = start_mins
+        while current + duration_minutes <= end_mins:
+            slot_start = minutes_to_time(current)
+            slot_end = minutes_to_time(current + duration_minutes)
+
+            # Check if this slot is available (no conflicts with bookings or blocked times)
+            if check_slot_available(booking_date_obj, slot_start, slot_end):
+                slots.append({
+                    'start': slot_start,
+                    'end': slot_end
+                })
+
+            current += 30  # 30-minute intervals
+
+    return slots
+
+
 def validate_csv_row(row, row_num, services_dict):
     """Validate a single CSV row and return errors if any"""
     errors = []
@@ -2198,21 +2242,47 @@ def get_available_slots():
 
 @app.route('/book/confirm', methods=['POST'])
 def confirm_booking():
-    """Step 2: After selecting time, redirect to intake form"""
-    service_id = request.form['service_id']
+    """Step 2: After selecting time, redirect to intake form (supports multiple services)"""
+    # Support both new multi-service format and legacy single service format
+    service_ids_str = request.form.get('service_ids', '')
+    service_id = request.form.get('service_id')
     booking_date = request.form['booking_date']
     booking_time = request.form['booking_time']
+    total_duration = request.form.get('total_duration', type=int)
 
-    service = Service.query.get(service_id)
-    if not service:
-        flash('Service not found', 'error')
+    # Parse service IDs
+    service_ids = []
+    if service_ids_str:
+        try:
+            service_ids = [int(sid.strip()) for sid in service_ids_str.split(',') if sid.strip()]
+        except ValueError:
+            flash('Invalid service selection', 'error')
+            return redirect(url_for('booking_page'))
+    elif service_id:
+        service_ids = [int(service_id)]
+
+    if not service_ids:
+        flash('Please select at least one service', 'error')
         return redirect(url_for('booking_page'))
+
+    # Get all selected services
+    services = Service.query.filter(Service.id.in_(service_ids)).all()
+    if not services:
+        flash('Services not found', 'error')
+        return redirect(url_for('booking_page'))
+
+    # Use primary service (first one) for the booking record
+    primary_service = services[0]
+
+    # Calculate total duration if not provided
+    if not total_duration:
+        total_duration = sum(s.duration_minutes for s in services)
 
     booking_date_obj = datetime.strptime(booking_date, '%Y-%m-%d').date()
 
-    # Calculate end time based on service duration
+    # Calculate end time based on total duration
     start_mins = time_to_minutes(booking_time)
-    end_mins = start_mins + service.duration_minutes
+    end_mins = start_mins + total_duration
     end_time = minutes_to_time(end_mins)
 
     # Double-check availability before proceeding
@@ -2220,9 +2290,23 @@ def confirm_booking():
         flash('Sorry, this time slot is no longer available. Please choose another time.', 'error')
         return redirect(url_for('booking_page'))
 
+    # Build additional services info for multi-service bookings
+    additional_services = []
+    if len(services) > 1:
+        for s in services[1:]:
+            additional_services.append({
+                'id': s.id,
+                'name': s.name,
+                'duration': s.duration_minutes,
+                'price': float(s.price) if s.price else 0
+            })
+
     # Store booking details in session and redirect to intake form
     session['pending_booking'] = {
-        'service_id': service_id,
+        'service_id': primary_service.id,
+        'service_ids': service_ids,
+        'additional_services': additional_services,
+        'total_duration': total_duration,
         'booking_date': booking_date,
         'booking_time': booking_time,
         'end_time': end_time
@@ -2233,16 +2317,23 @@ def confirm_booking():
 
 @app.route('/book/intake', methods=['GET', 'POST'])
 def intake_form():
-    """Step 3: Client intake form"""
+    """Step 3: Client intake form (supports multiple services)"""
     pending = session.get('pending_booking')
     if not pending:
         flash('Please start a new booking.', 'error')
         return redirect(url_for('booking_page'))
 
+    # Get primary service
     service = Service.query.get(pending['service_id'])
     if not service:
         flash('Service not found', 'error')
         return redirect(url_for('booking_page'))
+
+    # Get all selected services for display
+    service_ids = pending.get('service_ids', [pending['service_id']])
+    all_services = Service.query.filter(Service.id.in_(service_ids)).all()
+    total_duration = pending.get('total_duration', service.duration_minutes)
+    total_price = sum(s.price or 0 for s in all_services)
 
     # Get logged-in user details to pre-fill form
     user = None
@@ -2255,7 +2346,7 @@ def intake_form():
             dob = datetime.strptime(request.form['date_of_birth'], '%Y-%m-%d').date()
         except ValueError:
             flash('Invalid date of birth format', 'error')
-            return render_template('intake_form.html', pending=pending, service=service, today=date.today().isoformat(), user=user)
+            return render_template('intake_form.html', pending=pending, service=service, all_services=all_services, total_duration=total_duration, total_price=total_price, today=date.today().isoformat(), user=user)
 
         # Calculate if minor (under 18)
         today = date.today()
@@ -2311,6 +2402,13 @@ def intake_form():
             if not user.phone and customer_phone:
                 user.phone = customer_phone
 
+        # Build notes with additional services info if multi-service booking
+        booking_notes = None
+        additional_services = pending.get('additional_services', [])
+        if additional_services:
+            additional_names = [s['name'] for s in additional_services]
+            booking_notes = f"MULTI-SERVICE BOOKING: {service.name} + {', '.join(additional_names)}\nTotal Duration: {total_duration} minutes"
+
         booking = Booking(
             service_id=pending['service_id'],
             customer_name=customer_name,
@@ -2320,16 +2418,23 @@ def intake_form():
             booking_time=pending['booking_time'],
             end_time=pending['end_time'],
             intake_form_id=intake.id,
-            user_id=user_id
+            user_id=user_id,
+            notes=booking_notes
         )
 
         db.session.add(booking)
         db.session.commit()
 
+        # Build service description for log
+        if len(all_services) > 1:
+            all_service_names = ' + '.join(s.name for s in all_services)
+        else:
+            all_service_names = service.name
+
         # Log the activity (customer booking - no admin_user_id)
         ActivityLog.log(
             action_type='booking_created',
-            description=f'{customer_name} booked online: {service.name} on {booking_date_obj.strftime("%d %b")} at {pending["booking_time"]}',
+            description=f'{customer_name} booked online: {all_service_names} on {booking_date_obj.strftime("%d %b")} at {pending["booking_time"]}',
             admin_user_id=None,  # Customer booking, not admin
             booking_id=booking.id,
             client_email=customer_email
@@ -2343,7 +2448,8 @@ def intake_form():
         print("NEW BOOKING RECEIVED!")
         print("=" * 50)
         print(f"Booking ID: {booking.id}")
-        print(f"Service: {service.name}")
+        print(f"Services: {all_service_names}")
+        print(f"Duration: {total_duration} minutes")
         print(f"Date: {booking.booking_date}")
         print(f"Time: {booking.booking_time} - {booking.end_time}")
         print(f"Customer: {booking.customer_name}")
@@ -2359,10 +2465,10 @@ def intake_form():
         except Exception as e:
             print(f"[EMAIL ERROR] Failed to send confirmation: {e}")
 
-        return render_template('booking_confirmed.html', booking=booking, service=service)
+        return render_template('booking_confirmed.html', booking=booking, service=service, all_services=all_services, total_duration=total_duration, total_price=total_price)
 
     # GET request - show form with user details pre-filled if logged in
-    return render_template('intake_form.html', pending=pending, service=service, today=date.today().isoformat(), user=user)
+    return render_template('intake_form.html', pending=pending, service=service, all_services=all_services, total_duration=total_duration, total_price=total_price, today=date.today().isoformat(), user=user)
 
 
 # ==================== ADMIN: INTAKE FORMS ====================
@@ -2515,27 +2621,51 @@ def api_slots(service_id, booking_date):
 
 @app.route('/api/available-slots')
 def api_available_slots():
-    """Get available slots for a service on a specific date (query param version)"""
+    """Get available slots for services on a specific date (supports multiple services)"""
+    # Support both single service_id and multiple service_ids
+    service_ids_str = request.args.get('service_ids', '')
     service_id = request.args.get('service_id', type=int)
     date_str = request.args.get('date')
+    total_duration = request.args.get('total_duration', type=int)
 
-    if not service_id or not date_str:
-        return jsonify({'error': 'service_id and date required', 'slots': []})
+    if not date_str:
+        return jsonify({'error': 'date required', 'slots': []})
 
-    service = Service.query.get(service_id)
-    if not service:
-        return jsonify({'error': 'Service not found', 'slots': []})
+    # Parse service IDs - support comma-separated list or single ID
+    service_ids = []
+    if service_ids_str:
+        try:
+            service_ids = [int(sid.strip()) for sid in service_ids_str.split(',') if sid.strip()]
+        except ValueError:
+            return jsonify({'error': 'Invalid service_ids format', 'slots': []})
+    elif service_id:
+        service_ids = [service_id]
+
+    if not service_ids:
+        return jsonify({'error': 'service_id or service_ids required', 'slots': []})
+
+    # Get services and calculate total duration if not provided
+    services = Service.query.filter(Service.id.in_(service_ids)).all()
+    if not services:
+        return jsonify({'error': 'No services found', 'slots': []})
+
+    # Calculate total duration from services if not explicitly provided
+    if not total_duration:
+        total_duration = sum(s.duration_minutes for s in services)
 
     try:
         booking_date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
     except ValueError:
         return jsonify({'error': 'Invalid date format', 'slots': []})
 
-    slots = get_available_slots_for_date(service, booking_date_obj)
+    # Get slots using the total duration
+    slots = get_available_slots_for_duration(total_duration, booking_date_obj)
 
+    service_names = ', '.join(s.name for s in services)
     return jsonify({
-        'service': service.name,
+        'services': service_names,
         'date': date_str,
+        'total_duration': total_duration,
         'slots': slots
     })
 
