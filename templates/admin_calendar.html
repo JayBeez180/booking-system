@@ -440,20 +440,84 @@
         color: var(--cal-cream);
     }
 
-    /* Responsive */
+    /* Responsive - Tablet */
+    @media (max-width: 992px) {
+        .calendar-header {
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px 15px;
+        }
+
+        .calendar-nav {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .view-toggle {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* Responsive - Mobile */
     @media (max-width: 768px) {
+        .calendar-wrapper {
+            border-radius: 8px;
+        }
+
+        .calendar-header {
+            padding: 10px;
+        }
+
+        .calendar-nav {
+            gap: 8px;
+        }
+
+        .calendar-nav button {
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        .calendar-title {
+            font-size: 14px;
+        }
+
+        .view-toggle a {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        /* Week view - show only 3 days on mobile */
+        .week-header {
+            grid-template-columns: 40px repeat(3, 1fr);
+        }
+
+        .week-header .week-day-header:nth-child(n+5) {
+            display: none;
+        }
+
         .time-grid {
-            grid-template-columns: 45px repeat(7, 1fr);
+            grid-template-columns: 40px repeat(3, 1fr);
+            max-height: 500px;
+        }
+
+        .time-grid .day-column:nth-child(n+5) {
+            display: none;
         }
 
         .time-label {
             font-size: 10px;
-            padding: 5px 4px;
+            padding: 5px 3px;
+            height: 50px;
+        }
+
+        .hour-row {
+            height: 50px;
         }
 
         .booking-block {
-            font-size: 9px;
-            padding: 2px 4px;
+            font-size: 10px;
+            padding: 3px 5px;
         }
 
         .booking-block .service-info,
@@ -461,22 +525,143 @@
             display: none;
         }
 
+        .booking-block .client-name {
+            font-size: 11px;
+        }
+
+        .week-day-header {
+            padding: 8px 4px;
+        }
+
         .week-day-header .day-num {
-            font-size: 18px;
-            width: 32px;
-            height: 32px;
+            font-size: 16px;
+            width: 28px;
+            height: 28px;
         }
 
         .week-day-header .day-name {
-            font-size: 10px;
+            font-size: 9px;
+            letter-spacing: 0;
         }
 
         .fab-button {
             bottom: 20px;
             right: 20px;
-            width: 48px;
-            height: 48px;
+            width: 50px;
+            height: 50px;
             font-size: 24px;
+        }
+
+        /* Day view - single column on mobile */
+        .day-view-grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        /* Calendar Legend */
+        .calendar-legend {
+            padding: 10px 12px;
+            gap: 8px;
+        }
+
+        .legend-item {
+            font-size: 10px;
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+        }
+
+        /* Month View Mobile */
+        .month-view-cell {
+            min-height: 60px !important;
+            padding: 4px !important;
+        }
+
+        .month-view-cell .booking-block {
+            font-size: 9px !important;
+            padding: 2px 3px !important;
+        }
+
+        /* Modal Adjustments */
+        .action-modal-content {
+            margin: 10px;
+            padding: 15px;
+            max-height: 85vh;
+        }
+
+        .action-modal h2 {
+            font-size: 16px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+        }
+
+        .modal-detail-box {
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .modal-detail-box div {
+            margin-bottom: 6px;
+        }
+    }
+
+    /* Small Mobile */
+    @media (max-width: 480px) {
+        .calendar-nav button {
+            padding: 6px 8px;
+            font-size: 11px;
+        }
+
+        .calendar-title {
+            font-size: 12px;
+        }
+
+        .view-toggle a {
+            padding: 6px 10px;
+            font-size: 11px;
+        }
+
+        .week-header {
+            grid-template-columns: 35px repeat(3, 1fr);
+        }
+
+        .time-grid {
+            grid-template-columns: 35px repeat(3, 1fr);
+        }
+
+        .time-label {
+            font-size: 9px;
+            height: 45px;
+        }
+
+        .hour-row {
+            height: 45px;
+        }
+
+        .week-day-header .day-num {
+            font-size: 14px;
+            width: 24px;
+            height: 24px;
+        }
+
+        .week-day-header .day-name {
+            font-size: 8px;
+        }
+
+        .booking-block .client-name {
+            font-size: 9px;
+        }
+
+        /* Month view - smaller */
+        .month-view-cell {
+            min-height: 50px !important;
         }
     }
 
@@ -614,7 +799,7 @@
         {% endif %}
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--cal-gold-dark);">
+    <div class="day-view-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--cal-gold-dark);">
         <!-- Morning Column: 9am - 2pm -->
         <div style="background: var(--cal-dark-green);">
             <div style="background: var(--cal-darker-green); padding: 10px; text-align: center; color: var(--cal-gold); font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--cal-gold-dark);">
