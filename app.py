@@ -880,24 +880,19 @@ def admin_calendar():
     view = request.args.get('view', 'week')  # 'day', 'week' or 'month'
     date_str = request.args.get('date')
 
-    # Get all client emails AND phones that have notes (for showing indicators)
+    # Get all emails/phones that have notes (for showing indicators on calendar)
     emails_with_notes = set()
     phones_with_notes = set()
-    try:
-        # Check ClientNote table (new system)
-        all_notes = ClientNote.query.all()
-        for note in all_notes:
-            if note.client_email:
-                emails_with_notes.add(note.client_email.lower())
-        # Also check Client.notes field for backwards compatibility
-        clients_with_notes = Client.query.filter(Client.notes.isnot(None), Client.notes != '').all()
-        for client in clients_with_notes:
-            if client.email:
-                emails_with_notes.add(client.email.lower())
-            if client.phone:
-                phones_with_notes.add(client.phone)
-    except Exception as e:
-        print(f"Error loading notes: {e}")
+    # Check ClientNote table
+    for note in ClientNote.query.all():
+        if note.client_email:
+            emails_with_notes.add(note.client_email.lower())
+    # Check Client.notes field
+    for client in Client.query.filter(Client.notes != None, Client.notes != '').all():
+        if client.email:
+            emails_with_notes.add(client.email.lower())
+        if client.phone:
+            phones_with_notes.add(client.phone)
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
