@@ -889,10 +889,13 @@ def admin_calendar():
 
         # Get emails with notes from Client.notes field
         clients_with_notes = Client.query.filter(Client.notes.isnot(None)).all()
+        print(f"[CALENDAR DEBUG] Found {len(clients_with_notes)} clients with notes field not null")
         for client in clients_with_notes:
+            print(f"[CALENDAR DEBUG] Client: {client.email}, notes: '{client.notes[:30] if client.notes else 'None'}...'")
             if client.notes and client.notes.strip():
                 if client.email:
                     emails_with_notes.add(client.email.lower().strip())
+                    print(f"[CALENDAR DEBUG] Added email to notes set: {client.email.lower().strip()}")
                 if client.phone:
                     phones_with_notes.add(client.phone.replace(' ', '').replace('-', ''))
 
@@ -901,9 +904,13 @@ def admin_calendar():
         for (email,) in client_notes:
             if email:
                 emails_with_notes.add(email.lower().strip())
+
+        print(f"[CALENDAR DEBUG] emails_with_notes set: {emails_with_notes}")
     except Exception as e:
         # If notes lookup fails, continue without indicators
         print(f"[CALENDAR] Notes lookup warning: {e}")
+        import traceback
+        traceback.print_exc()
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
