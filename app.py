@@ -883,18 +883,18 @@ def admin_calendar():
     # Get all emails/phones that have notes (for showing indicators on calendar)
     emails_with_notes = set()
     phones_with_notes = set()
-    # Check ClientNote table
-    for note in ClientNote.query.all():
-        if note.client_email:
-            emails_with_notes.add(note.client_email.lower().strip())
-    # Check Client.notes field
-    for client in Client.query.all():
-        if client.notes and client.notes.strip():
-            if client.email:
-                emails_with_notes.add(client.email.lower().strip())
-            if client.phone:
-                # Normalize phone by removing spaces and dashes
-                phones_with_notes.add(client.phone.replace(' ', '').replace('-', ''))
+    try:
+        for note in ClientNote.query.all():
+            if note.client_email:
+                emails_with_notes.add(note.client_email.lower().strip())
+        for client in Client.query.all():
+            if client.notes and client.notes.strip():
+                if client.email:
+                    emails_with_notes.add(client.email.lower().strip())
+                if client.phone:
+                    phones_with_notes.add(client.phone.replace(' ', '').replace('-', ''))
+    except:
+        pass  # Don't crash calendar if notes lookup fails
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
