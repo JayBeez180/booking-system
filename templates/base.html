@@ -760,6 +760,16 @@
                 navMenu.classList.remove('active');
             }
         });
+
+        // Ensure nav links work properly on mobile (prevent interference from other handlers)
+        document.querySelectorAll('nav a:not(.nav-dropdown-btn)').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                // Allow the link to navigate normally
+                if (this.href && !this.classList.contains('nav-dropdown-btn')) {
+                    window.location.href = this.href;
+                }
+            });
+        });
     </script>
 
     {% if session.get('admin_logged_in') %}
