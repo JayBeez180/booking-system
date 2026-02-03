@@ -2001,17 +2001,35 @@ def delete_client_note(note_id):
 @login_required
 def get_client_notes_api(client_email):
     """API endpoint to get client notes for a given email - used in calendar modal"""
+    all_notes = []
+
+    # First, get the Client.notes field (Staff Notes from client profile)
+    client = Client.query.filter(Client.email.ilike(client_email)).first()
+    if client and client.notes and client.notes.strip():
+        all_notes.append({
+            'id': 0,
+            'note': client.notes,
+            'is_alert': False,
+            'created_at': 'Staff Notes',
+            'is_staff_note': True
+        })
+
+    # Then get any ClientNote entries
     notes = ClientNote.query.filter(
         ClientNote.client_email.ilike(client_email)
     ).order_by(ClientNote.created_at.desc()).all()
 
-    return jsonify({
-        'notes': [{
+    for n in notes:
+        all_notes.append({
             'id': n.id,
             'note': n.note,
             'is_alert': n.is_alert,
-            'created_at': n.created_at.strftime('%d %b %Y %H:%M')
-        } for n in notes],
+            'created_at': n.created_at.strftime('%d %b %Y %H:%M'),
+            'is_staff_note': False
+        })
+
+    return jsonify({
+        'notes': all_notes,
         'has_alerts': any(n.is_alert for n in notes)
     })
 
