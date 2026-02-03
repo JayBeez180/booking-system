@@ -2759,10 +2759,9 @@ def admin_client_detail(client_id):
         )
     ).order_by(Booking.booking_date.desc()).limit(20).all()
 
-    # Get client notes
-    notes = ClientNote.query.filter_by(client_id=client.id).order_by(ClientNote.created_at.desc()).all()
-    if not notes and client.email:
-        # Also check for legacy notes by email
+    # Get client notes (linked by email)
+    notes = []
+    if client.email:
         notes = ClientNote.query.filter_by(client_email=client.email).order_by(ClientNote.created_at.desc()).all()
 
     # All tags for assignment
