@@ -2532,11 +2532,11 @@ def admin_clients_sync_from_bookings():
     from sqlalchemy import func
 
     # Get all unique customers from bookings
-    # Group by email to get stats
+    # Group by email to get stats (use max() for phone/name to get most recent values)
     booking_stats = db.session.query(
         Booking.customer_email,
-        Booking.customer_phone,
-        Booking.customer_name,
+        func.max(Booking.customer_phone).label('customer_phone'),
+        func.max(Booking.customer_name).label('customer_name'),
         func.count(Booking.id).label('total_bookings'),
         func.min(Booking.booking_date).label('first_booking'),
         func.max(Booking.booking_date).label('last_booking')
