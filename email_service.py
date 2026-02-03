@@ -25,7 +25,7 @@ def get_smtp_connection():
         return None
 
     try:
-        smtp = smtplib.SMTP(server, port)
+        smtp = smtplib.SMTP(server, port, timeout=10)  # 10 second timeout
         if use_tls:
             smtp.starttls()
         if password:
