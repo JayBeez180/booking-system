@@ -880,7 +880,7 @@ def admin_calendar():
     view = request.args.get('view', 'week')  # 'day', 'week' or 'month'
     date_str = request.args.get('date')
 
-    # Notes indicator disabled for now
+    # Notes indicator temporarily disabled
     emails_with_notes = set()
     phones_with_notes = set()
 
