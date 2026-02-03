@@ -845,13 +845,13 @@
             {% set end_mins = (end_parts[0]|int - start_hour) * 60 + end_parts[1]|int %}
             {% set top_px = start_mins %}
             {% set height_px = end_mins - start_mins %}
-            {% set is_short = height_px <= 20 %}
+            {% set is_short = height_px <= 50 %}
             <div class="booking-block cat-{{ booking.category }} {% if booking.status == 'no_show' %}no-show{% elif booking.status == 'cancelled' %}cancelled{% elif booking.status == 'completed' %}completed{% endif %}"
-                 style="top: {{ top_px }}px; height: {{ height_px }}px;{% if is_short %} padding: 2px 4px;{% endif %}"
+                 style="top: {{ top_px }}px; height: {{ height_px }}px; padding: {% if is_short %}2px 4px{% else %}4px 6px{% endif %}; display: flex; flex-direction: column; justify-content: center;"
                  onclick="openEditModal({{ booking.id }}, '{{ booking.customer | e }}', '{{ booking.service | e }}', '{{ booking.time }}', '{{ booking.end_time }}', '{{ day.date.isoformat() }}', '{{ booking.status }}', '{{ booking.email | e }}')">
                 {% if is_short %}
-                <!-- Short 15-min booking - just show name centered -->
-                <div class="client-name" style="text-align: center; font-size: 9px;">{{ booking.customer.split(' ')[0] }}</div>
+                <!-- Short booking (up to 45 min) - just show name centered -->
+                <div class="client-name" style="text-align: center; font-size: 10px; font-weight: 600;">{{ booking.customer.split(' ')[0] }}</div>
                 {% else %}
                 <div class="booking-icons">
                     {% if booking.has_notes %}📝{% endif %}
