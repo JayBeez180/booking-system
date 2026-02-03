@@ -886,14 +886,15 @@ def admin_calendar():
     # Check ClientNote table
     for note in ClientNote.query.all():
         if note.client_email:
-            emails_with_notes.add(note.client_email.lower())
+            emails_with_notes.add(note.client_email.lower().strip())
     # Check Client.notes field
     for client in Client.query.all():
         if client.notes and client.notes.strip():
             if client.email:
-                emails_with_notes.add(client.email.lower())
+                emails_with_notes.add(client.email.lower().strip())
             if client.phone:
-                phones_with_notes.add(client.phone)
+                # Normalize phone by removing spaces and dashes
+                phones_with_notes.add(client.phone.replace(' ', '').replace('-', ''))
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -986,9 +987,9 @@ def admin_calendar():
                     else:
                         category_slug = 'other'
                     has_notes = False
-                    if booking.customer_email and booking.customer_email.lower() in emails_with_notes:
+                    if booking.customer_email and booking.customer_email.lower().strip() in emails_with_notes:
                         has_notes = True
-                    elif booking.customer_phone and booking.customer_phone in phones_with_notes:
+                    elif booking.customer_phone and booking.customer_phone.replace(' ', '').replace('-', '') in phones_with_notes:
                         has_notes = True
                     slot['booking'] = {
                         'id': booking.id,
@@ -1135,9 +1136,9 @@ def admin_calendar():
             else:
                 category_slug = 'other'
             has_notes = False
-            if booking.customer_email and booking.customer_email.lower() in emails_with_notes:
+            if booking.customer_email and booking.customer_email.lower().strip() in emails_with_notes:
                 has_notes = True
-            elif booking.customer_phone and booking.customer_phone in phones_with_notes:
+            elif booking.customer_phone and booking.customer_phone.replace(' ', '').replace('-', '') in phones_with_notes:
                 has_notes = True
             day_data['bookings'].append({
                 'id': booking.id,
