@@ -744,8 +744,9 @@
         background: rgba(201, 169, 98, 0.2);
     }
 
-    .day-slot.hour-start {
-        background: rgba(201, 169, 98, 0.03);
+    /* Alternating hour backgrounds for visual separation */
+    .day-slot.odd-hour {
+        background: rgba(0, 0, 0, 0.15);
     }
 
     /* Booking blocks in day view */
@@ -881,8 +882,10 @@
         {% for slot in time_slots %}
         {% set is_hour = slot.time.endswith(':00') %}
         {% set is_half = slot.time.endswith(':30') %}
-        <div class="day-slot {% if is_hour %}hour-start{% elif is_half %}half-hour{% endif %} {% if slot.booking %}has-booking{% endif %} {% if slot.blocked %}is-blocked{% endif %}"
-             style="display: flex; min-height: 48px; border-bottom: {% if is_hour %}2px solid rgba(201, 169, 98, 0.4){% elif is_half %}1px dashed rgba(201, 169, 98, 0.25){% else %}1px solid rgba(201, 169, 98, 0.12){% endif %}; background: {% if slot.booking %}rgba(201, 169, 98, 0.08){% elif slot.blocked %}rgba(192, 57, 43, 0.15){% else %}transparent{% endif %};"
+        {% set hour = slot.time.split(':')[0]|int %}
+        {% set is_odd_hour = hour % 2 == 1 %}
+        <div class="day-slot {% if is_hour %}hour-start{% elif is_half %}half-hour{% endif %} {% if slot.booking %}has-booking{% endif %} {% if slot.blocked %}is-blocked{% endif %} {% if is_odd_hour %}odd-hour{% endif %}"
+             style="display: flex; min-height: 48px; border-bottom: 1px solid rgba(201, 169, 98, 0.12); background: {% if slot.booking %}rgba(201, 169, 98, 0.08){% elif slot.blocked %}rgba(192, 57, 43, 0.15){% elif is_odd_hour %}rgba(0, 0, 0, 0.15){% else %}transparent{% endif %};"
              {% if not slot.booking and not slot.blocked %}
              onclick="openActionModal('{{ current_date.isoformat() }}', '{{ slot.time }}')"
              {% endif %}>
