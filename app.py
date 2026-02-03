@@ -989,9 +989,11 @@ def admin_calendar():
                             category_slug = 'other'
                     else:
                         category_slug = 'other'
-                    email_match = (booking.customer_email or '').lower() in emails_with_notes
-                    phone_match = (booking.customer_phone or '') in phones_with_notes
-                    has_notes = email_match or phone_match
+                    has_notes = False
+                    if booking.customer_email and booking.customer_email.lower() in emails_with_notes:
+                        has_notes = True
+                    elif booking.customer_phone and booking.customer_phone in phones_with_notes:
+                        has_notes = True
                     slot['booking'] = {
                         'id': booking.id,
                         'time': booking.booking_time,
@@ -1136,9 +1138,11 @@ def admin_calendar():
                     category_slug = 'other'
             else:
                 category_slug = 'other'
-            email_match = (booking.customer_email or '').lower() in emails_with_notes
-            phone_match = (booking.customer_phone or '') in phones_with_notes
-            has_notes = email_match or phone_match
+            has_notes = False
+            if booking.customer_email and booking.customer_email.lower() in emails_with_notes:
+                has_notes = True
+            elif booking.customer_phone and booking.customer_phone in phones_with_notes:
+                has_notes = True
             day_data['bookings'].append({
                 'id': booking.id,
                 'time': booking.booking_time,
