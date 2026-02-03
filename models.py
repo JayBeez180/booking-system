@@ -318,7 +318,6 @@ class Client(db.Model):
 
     # Relationships
     tags = db.relationship('ClientTag', secondary='client_tag_assignment', backref='clients')
-    client_notes = db.relationship('ClientNote', backref='client', lazy=True)
 
     def __repr__(self):
         return f'<Client {self.name} - {self.email}>'
