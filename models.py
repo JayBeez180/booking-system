@@ -227,9 +227,12 @@ class Settings(db.Model):
         db.session.commit()
 
     @classmethod
-    def get_bool(cls, key):
+    def get_bool(cls, key, default=False):
         """Get a boolean setting"""
-        return cls.get(key, 'false').lower() == 'true'
+        value = cls.get(key)
+        if value is None:
+            return default
+        return value.lower() == 'true'
 
     @classmethod
     def get_int(cls, key, default=0):
