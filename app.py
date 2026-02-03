@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, Response, g
-from models import db, Service, Availability, Booking, IntakeForm, Settings, Category, BlockedTime, User, Aftercare, ClientNote, AdminUser, ActivityLog
+from models import db, Service, Availability, Booking, IntakeForm, Settings, Category, BlockedTime, User, Aftercare, ClientNote, AdminUser, ActivityLog, Client
 from datetime import datetime, timedelta, date
 from functools import wraps
 import csv
@@ -880,37 +880,15 @@ def admin_calendar():
     view = request.args.get('view', 'week')  # 'day', 'week' or 'month'
     date_str = request.args.get('date')
 
-    # Build sets of emails/phones that have notes for calendar indicators
+    # Build set of emails that have notes - simplified approach using Client accounts
     emails_with_notes = set()
-    phones_with_notes = set()
-
     try:
-        from models import Client, ClientNote
-
-        # Get emails with notes from Client.notes field
-        clients_with_notes = Client.query.filter(Client.notes.isnot(None)).all()
-        print(f"[CALENDAR DEBUG] Found {len(clients_with_notes)} clients with notes field not null")
-        for client in clients_with_notes:
-            print(f"[CALENDAR DEBUG] Client: {client.email}, notes: '{client.notes[:30] if client.notes else 'None'}...'")
-            if client.notes and client.notes.strip():
-                if client.email:
-                    emails_with_notes.add(client.email.lower().strip())
-                    print(f"[CALENDAR DEBUG] Added email to notes set: {client.email.lower().strip()}")
-                if client.phone:
-                    phones_with_notes.add(client.phone.replace(' ', '').replace('-', ''))
-
-        # Get emails with notes from ClientNote table
-        client_notes = ClientNote.query.with_entities(ClientNote.client_email).distinct().all()
-        for (email,) in client_notes:
-            if email:
-                emails_with_notes.add(email.lower().strip())
-
-        print(f"[CALENDAR DEBUG] emails_with_notes set: {emails_with_notes}")
+        # Get all clients with notes in their profile
+        for client in Client.query.all():
+            if client.notes and client.notes.strip() and client.email:
+                emails_with_notes.add(client.email.lower().strip())
     except Exception as e:
-        # If notes lookup fails, continue without indicators
-        print(f"[CALENDAR] Notes lookup warning: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"[CALENDAR] Notes lookup error: {e}")
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -1002,11 +980,7 @@ def admin_calendar():
                             category_slug = 'other'
                     else:
                         category_slug = 'other'
-                    has_notes = False
-                    if booking.customer_email and booking.customer_email.lower().strip() in emails_with_notes:
-                        has_notes = True
-                    elif booking.customer_phone and booking.customer_phone.replace(' ', '').replace('-', '') in phones_with_notes:
-                        has_notes = True
+                    has_notes = booking.customer_email and booking.customer_email.lower().strip() in emails_with_notes
                     slot['booking'] = {
                         'id': booking.id,
                         'time': booking.booking_time,
@@ -1151,11 +1125,7 @@ def admin_calendar():
                     category_slug = 'other'
             else:
                 category_slug = 'other'
-            has_notes = False
-            if booking.customer_email and booking.customer_email.lower().strip() in emails_with_notes:
-                has_notes = True
-            elif booking.customer_phone and booking.customer_phone.replace(' ', '').replace('-', '') in phones_with_notes:
-                has_notes = True
+            has_notes = booking.customer_email and booking.customer_email.lower().strip() in emails_with_notes
             day_data['bookings'].append({
                 'id': booking.id,
                 'time': booking.booking_time,
