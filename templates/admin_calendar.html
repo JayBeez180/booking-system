@@ -195,6 +195,10 @@
         transition: transform 0.1s, box-shadow 0.1s;
         z-index: 10;
         border-left: 3px solid rgba(0,0,0,0.2);
+        /* Center content vertically - helps with short 15-min slots */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
     .booking-block:hover {
