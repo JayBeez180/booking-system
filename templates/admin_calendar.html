@@ -236,6 +236,38 @@
         font-size: 10px;
     }
 
+    /* Notes icon - SVG-based with contrasting background */
+    .notes-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 3px;
+        padding: 2px;
+    }
+    .notes-icon svg {
+        width: 12px;
+        height: 12px;
+        fill: white;
+    }
+    /* Smaller notes icon for compact blocks */
+    .notes-icon-sm {
+        padding: 1px;
+        border-radius: 2px;
+    }
+    .notes-icon-sm svg {
+        width: 10px;
+        height: 10px;
+    }
+    .notes-icon-xs {
+        padding: 1px;
+        border-radius: 2px;
+    }
+    .notes-icon-xs svg {
+        width: 8px;
+        height: 8px;
+    }
+
     /* Category Colors - Vibrant like the screenshot */
     .booking-block.cat-ears { background: #00d4aa; color: #1a1a2e; }
     .booking-block.cat-nose { background: #ff9f43; color: #1a1a2e; }
@@ -849,19 +881,16 @@
                  style="top: {{ top_px }}px; height: {{ height_px }}px; padding: {% if height_px <= 20 %}2px 4px{% else %}3px 5px{% endif %}; display: flex; flex-direction: column; justify-content: center;"
                  onclick="openEditModal({{ booking.id }}, '{{ booking.customer | e }}', '{{ booking.service | e }}', '{{ booking.time }}', '{{ booking.end_time }}', '{{ day.date.isoformat() }}', '{{ booking.status }}', '{{ booking.email | e }}')">
                 {% if height_px <= 20 %}
-                <!-- 15 min - just name -->
-                <div style="text-align: center; font-size: 9px; font-weight: 600; white-space: nowrap; overflow: hidden;">{{ booking.customer.split(' ')[0] }}</div>
+                <!-- 15 min - just name with inline notes icon -->
+                <div style="text-align: center; font-size: 9px; font-weight: 600; white-space: nowrap; overflow: hidden;">{{ booking.customer.split(' ')[0] }}{% if booking.has_notes %} ✉{% endif %}</div>
                 {% elif height_px <= 50 %}
-                <!-- 30-45 min - name + service -->
-                <div style="font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden;">{{ booking.customer.split(' ')[0] }}</div>
+                <!-- 30-45 min - name + service with inline notes icon -->
+                <div style="font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden;">{{ booking.customer.split(' ')[0] }}{% if booking.has_notes %} ✉{% endif %}</div>
                 <div style="font-size: 9px; opacity: 0.9; white-space: nowrap; overflow: hidden;">{{ booking.service[:12] }}{% if booking.service|length > 12 %}..{% endif %}</div>
                 {% else %}
-                <!-- 60+ min - name + service + price -->
-                <div class="booking-icons">
-                    {% if booking.has_notes %}📝{% endif %}
-                    {% if booking.status == 'completed' %}✓{% endif %}
-                </div>
-                <div class="client-name">{{ booking.customer.split(' ')[0] }}</div>
+                <!-- 60+ min - name + service + price with inline notes icon -->
+                {% if booking.status == 'completed' %}<div class="booking-icons">✓</div>{% endif %}
+                <div class="client-name">{{ booking.customer.split(' ')[0] }}{% if booking.has_notes %} ✉{% endif %}</div>
                 <div class="service-info">{{ booking.service[:15] }}{% if booking.service|length > 15 %}...{% endif %}</div>
                 <div class="price">£{{ booking.price|int }}</div>
                 {% endif %}
@@ -923,16 +952,13 @@
                 <div class="booking-block cat-{{ slot.booking.category }} {% if slot.booking.status == 'no_show' %}no-show{% elif slot.booking.status == 'completed' %}completed{% endif %}"
                      style="position: absolute; top: 4px; left: 8px; right: 8px; height: {{ height_px - 8 }}px; border-radius: 8px; padding: {% if num_slots == 1 %}4px 8px{% else %}10px 12px{% endif %}; cursor: pointer; z-index: 10; display: flex; flex-direction: column; justify-content: center;"
                      onclick="event.stopPropagation(); openEditModal({{ slot.booking.id }}, '{{ slot.booking.customer | e }}', '{{ slot.booking.service | e }}', '{{ slot.booking.time }}', '{{ slot.booking.end_time }}', '{{ current_date.isoformat() }}', '{{ slot.booking.status }}', '{{ slot.booking.email | e }}')">
-                    <div class="booking-icons" style="position: absolute; top: {% if num_slots == 1 %}2px{% else %}8px{% endif %}; right: {% if num_slots == 1 %}4px{% else %}8px{% endif %}; font-size: {% if num_slots == 1 %}9px{% else %}inherit{% endif %};">
-                        {% if slot.booking.has_notes %}📝{% endif %}
-                        {% if slot.booking.status == 'completed' %}✓{% endif %}
-                    </div>
+                    {% if slot.booking.status == 'completed' %}<div class="booking-icons" style="position: absolute; top: 8px; right: 8px;">✓</div>{% endif %}
                     {% if num_slots == 1 %}
                     <!-- Short 15-min appointment - just show name centered -->
-                    <div style="font-weight: 600; font-size: 12px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ slot.booking.customer.split(' ')[0] }}</div>
+                    <div style="font-weight: 600; font-size: 12px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ slot.booking.customer.split(' ')[0] }}{% if slot.booking.has_notes %} ✉{% endif %}</div>
                     {% else %}
                     <!-- Longer appointment - show full details -->
-                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">{{ slot.booking.customer }}</div>
+                    <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">{{ slot.booking.customer }}{% if slot.booking.has_notes %} ✉{% endif %}</div>
                     <div style="font-size: 13px; opacity: 0.9;">{{ slot.booking.service }}</div>
                     <div style="font-size: 12px; margin-top: 4px; opacity: 0.8;">{{ slot.booking.time }} - {{ slot.booking.end_time }}</div>
                     {% endif %}

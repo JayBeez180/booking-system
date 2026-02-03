@@ -882,9 +882,15 @@ def admin_calendar():
 
     # Get all client emails that have notes (for showing indicators)
     emails_with_notes = set()
+    # Check ClientNote table (new system)
     all_notes = ClientNote.query.all()
     for note in all_notes:
         emails_with_notes.add(note.client_email.lower())
+    # Also check Client.notes field (old system) for backwards compatibility
+    clients_with_notes = Client.query.filter(Client.notes.isnot(None), Client.notes != '').all()
+    for client in clients_with_notes:
+        if client.email:
+            emails_with_notes.add(client.email.lower())
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()

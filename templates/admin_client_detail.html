@@ -24,9 +24,6 @@
             <label>Phone:</label>
             <input type="tel" name="phone" value="{{ client.phone or '' }}" placeholder="07700 900123">
 
-            <label>Notes:</label>
-            <textarea name="notes" rows="3" placeholder="Internal notes about this client">{{ client.notes or '' }}</textarea>
-
             <div style="display: flex; align-items: center; gap: 10px; margin: 15px 0;">
                 <input type="checkbox" name="email_opt_in" value="true" {% if client.email_opt_in and not client.unsubscribed_at %}checked{% endif %} id="opt_in" style="width: auto;">
                 <label for="opt_in" style="margin: 0;">Opted in for marketing emails</label>
@@ -120,19 +117,62 @@
 </div>
 
 <!-- Client Notes -->
-<div class="card" style="margin-top: 20px;">
-    <h3 style="margin-top: 0;">Client Notes</h3>
+<div class="card" style="margin-top: 20px; background: #fff9e6; border: 1px solid #f1c40f;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;">📝 Staff Notes <small style="font-weight: normal; color: #666;">(visible on calendar)</small></h3>
+        <button type="button" class="btn btn-small" onclick="document.getElementById('addNoteForm').style.display = document.getElementById('addNoteForm').style.display === 'none' ? 'block' : 'none'" style="background: #f1c40f; color: #333;">
+            + Add Note
+        </button>
+    </div>
+
+    <!-- Add Note Form (hidden by default) -->
+    <div id="addNoteForm" style="display: none; background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+        <form method="POST" action="{{ url_for('add_client_note') }}">
+            <input type="hidden" name="client_email" value="{{ client.email }}">
+            <input type="hidden" name="client_name" value="{{ client.name }}">
+            <input type="hidden" name="redirect_url" value="{{ request.url }}">
+
+            <div style="margin-bottom: 10px;">
+                <label>Note:</label>
+                <textarea name="note" rows="3" required placeholder="Add notes about this client..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" name="is_alert" style="width: auto;">
+                    <span style="color: #e74c3c;">⚠️ Mark as Alert</span>
+                </label>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-small" style="background: #27ae60; color: white;">Save Note</button>
+                <button type="button" class="btn btn-small" onclick="document.getElementById('addNoteForm').style.display = 'none'" style="background: #95a5a6; color: white;">Cancel</button>
+            </div>
+        </form>
+    </div>
+
     {% if notes %}
     {% for note in notes %}
-    <div style="background: {% if note.is_alert %}#fff3cd{% else %}#f8f9fa{% endif %}; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
-        <div style="white-space: pre-wrap;">{{ note.note }}</div>
-        <div style="color: #999; font-size: 12px; margin-top: 10px;">
-            {{ note.created_at.strftime('%d %b %Y at %H:%M') }}
+    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid {% if note.is_alert %}#e74c3c{% else %}#3498db{% endif %};">
+        <div style="display: flex; justify-content: space-between; align-items: start; gap: 15px;">
+            <div style="flex: 1;">
+                {% if note.is_alert %}
+                <span style="background: #e74c3c; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 8px;">⚠️ ALERT</span>
+                {% endif %}
+                <span style="white-space: pre-wrap;">{{ note.note }}</span>
+                <div style="color: #999; font-size: 12px; margin-top: 10px;">
+                    {{ note.created_at.strftime('%d %b %Y at %H:%M') }}
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('delete_client_note', note_id=note.id) }}" style="margin: 0;" onsubmit="return confirm('Delete this note?');">
+                <input type="hidden" name="redirect_url" value="{{ request.url }}">
+                <button type="submit" class="btn btn-small" style="background: #e74c3c; color: white; padding: 5px 10px; font-size: 12px;">Delete</button>
+            </form>
         </div>
     </div>
     {% endfor %}
     {% else %}
-    <p style="color: #666; margin: 0;">No notes for this client.</p>
+    <p style="color: #666; margin: 0;">No notes yet. Add notes about accessibility needs, preferences, or anything important to remember.</p>
     {% endif %}
 </div>
 
