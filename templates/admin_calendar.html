@@ -845,9 +845,14 @@
             {% set end_mins = (end_parts[0]|int - start_hour) * 60 + end_parts[1]|int %}
             {% set top_px = start_mins %}
             {% set height_px = end_mins - start_mins %}
+            {% set is_short = height_px <= 20 %}
             <div class="booking-block cat-{{ booking.category }} {% if booking.status == 'no_show' %}no-show{% elif booking.status == 'cancelled' %}cancelled{% elif booking.status == 'completed' %}completed{% endif %}"
-                 style="top: {{ top_px }}px; height: {{ height_px }}px;"
+                 style="top: {{ top_px }}px; height: {{ height_px }}px;{% if is_short %} padding: 2px 4px;{% endif %}"
                  onclick="openEditModal({{ booking.id }}, '{{ booking.customer | e }}', '{{ booking.service | e }}', '{{ booking.time }}', '{{ booking.end_time }}', '{{ day.date.isoformat() }}', '{{ booking.status }}', '{{ booking.email | e }}')">
+                {% if is_short %}
+                <!-- Short 15-min booking - just show name centered -->
+                <div class="client-name" style="text-align: center; font-size: 9px;">{{ booking.customer.split(' ')[0] }}</div>
+                {% else %}
                 <div class="booking-icons">
                     {% if booking.has_notes %}📝{% endif %}
                     {% if booking.status == 'completed' %}✓{% endif %}
@@ -855,6 +860,7 @@
                 <div class="client-name">{{ booking.customer.split(' ')[0] }}</div>
                 <div class="service-info">{{ booking.service[:15] }}{% if booking.service|length > 15 %}...{% endif %}</div>
                 <div class="price">£{{ booking.price|int }}</div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -911,15 +917,21 @@
                 {% set num_slots = (duration_mins / 15)|int %}
                 {% set height_px = num_slots * 48 %}
                 <div class="booking-block cat-{{ slot.booking.category }} {% if slot.booking.status == 'no_show' %}no-show{% elif slot.booking.status == 'completed' %}completed{% endif %}"
-                     style="position: absolute; top: 4px; left: 8px; right: 8px; height: {{ height_px - 8 }}px; border-radius: 8px; padding: 10px 12px; cursor: pointer; z-index: 10; display: flex; flex-direction: column; justify-content: center;"
+                     style="position: absolute; top: 4px; left: 8px; right: 8px; height: {{ height_px - 8 }}px; border-radius: 8px; padding: {% if num_slots == 1 %}4px 8px{% else %}10px 12px{% endif %}; cursor: pointer; z-index: 10; display: flex; flex-direction: column; justify-content: center;"
                      onclick="event.stopPropagation(); openEditModal({{ slot.booking.id }}, '{{ slot.booking.customer | e }}', '{{ slot.booking.service | e }}', '{{ slot.booking.time }}', '{{ slot.booking.end_time }}', '{{ current_date.isoformat() }}', '{{ slot.booking.status }}', '{{ slot.booking.email | e }}')">
-                    <div class="booking-icons" style="position: absolute; top: 8px; right: 8px;">
+                    <div class="booking-icons" style="position: absolute; top: {% if num_slots == 1 %}2px{% else %}8px{% endif %}; right: {% if num_slots == 1 %}4px{% else %}8px{% endif %}; font-size: {% if num_slots == 1 %}9px{% else %}inherit{% endif %};">
                         {% if slot.booking.has_notes %}📝{% endif %}
                         {% if slot.booking.status == 'completed' %}✓{% endif %}
                     </div>
+                    {% if num_slots == 1 %}
+                    <!-- Short 15-min appointment - just show name centered -->
+                    <div style="font-weight: 600; font-size: 12px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ slot.booking.customer.split(' ')[0] }}</div>
+                    {% else %}
+                    <!-- Longer appointment - show full details -->
                     <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px;">{{ slot.booking.customer }}</div>
                     <div style="font-size: 13px; opacity: 0.9;">{{ slot.booking.service }}</div>
                     <div style="font-size: 12px; margin-top: 4px; opacity: 0.8;">{{ slot.booking.time }} - {{ slot.booking.end_time }}</div>
+                    {% endif %}
                 </div>
                 {% elif slot.blocked and slot.time == slot.blocked.start_time %}
                 <!-- Blocked Time Block -->
