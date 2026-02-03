@@ -63,65 +63,260 @@
     .category-services .service-card:last-child {
         margin-bottom: 0;
     }
+
+    /* Date picker styling */
+    .date-picker-section {
+        display: none;
+        margin-top: 25px;
+        padding-top: 25px;
+        border-top: 1px solid rgba(201, 169, 98, 0.3);
+    }
+
+    .date-picker-section.show {
+        display: block;
+    }
+
+    /* Selected service summary */
+    .selected-service-summary {
+        background: rgba(201, 169, 98, 0.15);
+        border: 1px solid var(--gold);
+        border-radius: 8px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .selected-service-summary h3 {
+        margin: 0;
+        color: var(--gold);
+    }
+
+    .selected-service-summary .details {
+        color: rgba(245, 241, 232, 0.7);
+        font-size: 14px;
+        margin-top: 3px;
+    }
+
+    .selected-service-summary .price {
+        font-family: 'Cinzel', serif;
+        font-size: 22px;
+        color: var(--gold);
+    }
+
+    .change-service-btn {
+        font-size: 13px;
+        padding: 6px 12px;
+        margin: 0;
+        background: transparent;
+        border: 1px solid var(--gold);
+        color: var(--gold);
+    }
+
+    .change-service-btn:hover {
+        background: rgba(201, 169, 98, 0.2);
+    }
+
+    /* Time slots section */
+    .time-slots-section {
+        display: none;
+        margin-top: 25px;
+        padding-top: 25px;
+        border-top: 1px solid rgba(201, 169, 98, 0.3);
+    }
+
+    .time-slots-section.show {
+        display: block;
+    }
+
+    .slots-loading {
+        text-align: center;
+        padding: 30px;
+        color: rgba(245, 241, 232, 0.6);
+    }
+
+    .slots-loading .spinner {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        border: 3px solid rgba(201, 169, 98, 0.3);
+        border-top-color: var(--gold);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 10px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .no-slots-message {
+        text-align: center;
+        padding: 25px;
+        background: rgba(231, 76, 60, 0.15);
+        border: 1px solid rgba(231, 76, 60, 0.4);
+        border-radius: 8px;
+        color: #f5a5a0;
+    }
+
+    .no-slots-message p {
+        margin: 0 0 10px 0;
+    }
+
+    .no-slots-message .suggestion {
+        font-size: 13px;
+        color: rgba(245, 241, 232, 0.6);
+    }
+
+    /* Slots grid improvements */
+    .slots-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 10px;
+        margin: 15px 0;
+    }
+
+    .slot-btn {
+        padding: 12px 8px;
+        background: rgba(201, 169, 98, 0.1);
+        border: 1px solid rgba(201, 169, 98, 0.3);
+        border-radius: 6px;
+        color: var(--cream);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        font-size: 15px;
+    }
+
+    .slot-btn:hover {
+        background: rgba(201, 169, 98, 0.2);
+        border-color: var(--gold);
+    }
+
+    .slot-btn.selected {
+        background: var(--gold);
+        color: var(--darker-green);
+        border-color: var(--gold);
+        font-weight: 600;
+    }
+
+    /* Continue button */
+    .continue-section {
+        display: none;
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid rgba(201, 169, 98, 0.3);
+    }
+
+    .continue-section.show {
+        display: block;
+    }
+
+    .booking-summary {
+        background: rgba(39, 174, 96, 0.15);
+        border: 1px solid rgba(39, 174, 96, 0.4);
+        border-radius: 8px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        color: #7ed6a5;
+    }
+
+    .booking-summary .summary-line {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    }
+
+    .booking-summary .summary-line:last-child {
+        margin-bottom: 0;
+    }
+
+    .booking-summary .label {
+        color: rgba(126, 214, 165, 0.7);
+    }
+
+    /* Quick date navigation */
+    .quick-dates {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+
+    .quick-date-btn {
+        padding: 8px 14px;
+        background: rgba(201, 169, 98, 0.1);
+        border: 1px solid rgba(201, 169, 98, 0.3);
+        border-radius: 20px;
+        color: var(--cream);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 13px;
+        margin: 0;
+    }
+
+    .quick-date-btn:hover {
+        background: rgba(201, 169, 98, 0.2);
+        border-color: var(--gold);
+    }
+
+    .quick-date-btn.active {
+        background: var(--gold);
+        color: var(--darker-green);
+        border-color: var(--gold);
+    }
 </style>
 
 <div class="container">
     <h1>Book an Appointment</h1>
-    <p class="subtitle">Select your service and preferred time</p>
+    <p class="subtitle">Select your service, date and time</p>
 
     {% if error %}
         <div class="alert alert-error">{{ error }}</div>
     {% endif %}
 
-    {% if not selected_service %}
-        <!-- Step 1: Choose service and date -->
-        <form method="POST" action="/book/slots">
-            <label>Choose a Service</label>
+    <!-- Selected Service Summary (shown after selection) -->
+    <div id="selectedServiceSummary" class="selected-service-summary" style="display: none;">
+        <div>
+            <h3 id="summaryServiceName"></h3>
+            <div class="details">
+                <span id="summaryDuration"></span> minutes
+                <span id="summaryDescription"></span>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span class="price" id="summaryPrice"></span>
+            <button type="button" class="btn change-service-btn" onclick="changeService()">Change</button>
+        </div>
+    </div>
 
-            {% set has_services = (categories and categories|selectattr('services')|list) or uncategorized %}
+    <!-- Step 1: Service Selection -->
+    <div id="serviceSelection">
+        <label>Choose a Service</label>
 
-            {% if has_services %}
-                <div style="margin-bottom: 20px;">
-                    {% for category in categories %}
-                        {% set active_services = category.services | selectattr('is_active') | list %}
-                        {% if active_services %}
-                            <div class="category-accordion">
-                                <div class="category-header" onclick="toggleCategory(this)">
-                                    <div>
-                                        <h3>{{ category.name }}</h3>
-                                        <span class="service-count">{{ active_services|length }} service{{ 's' if active_services|length != 1 else '' }}</span>
-                                    </div>
-                                    <span class="arrow">▼</span>
-                                </div>
-                                <div class="category-services">
-                                    {% for service in active_services %}
-                                        <div class="service-card" onclick="selectService(this, {{ service.id }}); event.stopPropagation();" style="cursor: pointer;">
-                                            <div class="service-info">
-                                                <h3>{{ service.name }}</h3>
-                                                <p>{{ service.duration_minutes }} minutes{% if service.description %} &bull; {{ service.description }}{% endif %}</p>
-                                            </div>
-                                            <div class="service-price">
-                                                {% if service.price %}£{{ "%.2f"|format(service.price) }}{% endif %}
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
+        {% set has_services = (categories and categories|selectattr('services')|list) or uncategorized %}
 
-                    {% if uncategorized %}
+        {% if has_services %}
+            <div style="margin-bottom: 20px;">
+                {% for category in categories %}
+                    {% set active_services = category.services | selectattr('is_active') | list %}
+                    {% if active_services %}
                         <div class="category-accordion">
                             <div class="category-header" onclick="toggleCategory(this)">
                                 <div>
-                                    <h3>Other Services</h3>
-                                    <span class="service-count">{{ uncategorized|length }} service{{ 's' if uncategorized|length != 1 else '' }}</span>
+                                    <h3>{{ category.name }}</h3>
+                                    <span class="service-count">{{ active_services|length }} service{{ 's' if active_services|length != 1 else '' }}</span>
                                 </div>
                                 <span class="arrow">▼</span>
                             </div>
                             <div class="category-services">
-                                {% for service in uncategorized %}
-                                    <div class="service-card" onclick="selectService(this, {{ service.id }}); event.stopPropagation();" style="cursor: pointer;">
+                                {% for service in active_services %}
+                                    <div class="service-card"
+                                         onclick="selectService(this, {{ service.id }}, '{{ service.name | e }}', {{ service.duration_minutes }}, '{{ service.description | e if service.description else '' }}', {{ service.price if service.price else 0 }})"
+                                         style="cursor: pointer;">
                                         <div class="service-info">
                                             <h3>{{ service.name }}</h3>
                                             <p>{{ service.duration_minutes }} minutes{% if service.description %} &bull; {{ service.description }}{% endif %}</p>
@@ -134,99 +329,294 @@
                             </div>
                         </div>
                     {% endif %}
-                </div>
-                <input type="hidden" name="service_id" id="selected_service_id">
-                <script>
-                    function toggleCategory(header) {
-                        const wasOpen = header.classList.contains('open');
+                {% endfor %}
 
-                        // Close all categories
-                        document.querySelectorAll('.category-header').forEach(h => {
-                            h.classList.remove('open');
-                            h.nextElementSibling.classList.remove('open');
-                        });
-
-                        // If it wasn't open, open it
-                        if (!wasOpen) {
-                            header.classList.add('open');
-                            header.nextElementSibling.classList.add('open');
-                        }
-                    }
-
-                    function selectService(card, serviceId) {
-                        document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
-                        card.classList.add('selected');
-                        document.getElementById('selected_service_id').value = serviceId;
-                    }
-
-                    document.querySelector('form').addEventListener('submit', function(e) {
-                        if (!document.getElementById('selected_service_id').value) {
-                            e.preventDefault();
-                            alert('Please select a service');
-                        }
-                    });
-                </script>
-            {% else %}
-                <div class="alert alert-info">
-                    No services available at this time. Please check back later or contact us directly.
-                </div>
-            {% endif %}
-
-            <label>Choose a Date</label>
-            <input type="date" name="booking_date" required min="{{ today }}" max="{{ max_date }}" value="{{ today }}">
-
-            {% if has_services %}
-                <button type="submit">Check Availability</button>
-            {% endif %}
-        </form>
-
-    {% else %}
-        <!-- Step 2: Choose time slot and enter details -->
-        <div class="card" style="margin-bottom: 25px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <h3 style="margin: 0; color: var(--gold);">{{ selected_service.name }}</h3>
-                    <p style="margin: 5px 0 0 0; color: rgba(245, 241, 232, 0.7);">
-                        {{ selected_date }} &bull; {{ selected_service.duration_minutes }} minutes
-                    </p>
-                </div>
-                {% if selected_service.price %}
-                    <div style="font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold);">
-                        £{{ "%.2f"|format(selected_service.price) }}
+                {% if uncategorized %}
+                    <div class="category-accordion">
+                        <div class="category-header" onclick="toggleCategory(this)">
+                            <div>
+                                <h3>Other Services</h3>
+                                <span class="service-count">{{ uncategorized|length }} service{{ 's' if uncategorized|length != 1 else '' }}</span>
+                            </div>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="category-services">
+                            {% for service in uncategorized %}
+                                <div class="service-card"
+                                     onclick="selectService(this, {{ service.id }}, '{{ service.name | e }}', {{ service.duration_minutes }}, '{{ service.description | e if service.description else '' }}', {{ service.price if service.price else 0 }})"
+                                     style="cursor: pointer;">
+                                    <div class="service-info">
+                                        <h3>{{ service.name }}</h3>
+                                        <p>{{ service.duration_minutes }} minutes{% if service.description %} &bull; {{ service.description }}{% endif %}</p>
+                                    </div>
+                                    <div class="service-price">
+                                        {% if service.price %}£{{ "%.2f"|format(service.price) }}{% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 {% endif %}
             </div>
+        {% else %}
+            <div class="alert alert-info">
+                No services available at this time. Please check back later or contact us directly.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Step 2: Date Selection (shown after service selected) -->
+    <div id="dateSelection" class="date-picker-section">
+        <label>Choose a Date</label>
+
+        <!-- Quick date buttons -->
+        <div class="quick-dates" id="quickDates"></div>
+
+        <input type="date" id="bookingDate" min="{{ today }}" max="{{ max_date }}" value="{{ today }}" onchange="loadAvailableSlots()">
+    </div>
+
+    <!-- Step 3: Time Slots (shown after date selected) -->
+    <div id="timeSlotsSection" class="time-slots-section">
+        <label>Choose a Time</label>
+
+        <div id="slotsLoading" class="slots-loading" style="display: none;">
+            <div class="spinner"></div>
+            <div>Checking availability...</div>
         </div>
 
-        {% if available_slots %}
-            <form method="POST" action="/book/confirm">
-                <input type="hidden" name="service_id" value="{{ selected_service.id }}">
-                <input type="hidden" name="booking_date" value="{{ selected_date }}">
+        <div id="noSlotsMessage" class="no-slots-message" style="display: none;">
+            <p>😔 No available slots on this date</p>
+            <div class="suggestion">Try selecting a different date above</div>
+        </div>
 
-                <label>Choose a Time</label>
-                <div class="slots-grid">
-                    {% for slot in available_slots %}
-                        <label class="slot-btn">
-                            <input type="radio" name="booking_time" value="{{ slot.start }}" required style="display: none;" onchange="document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected')); this.closest('.slot-btn').classList.add('selected');">
-                            {{ slot.start }}
-                        </label>
-                    {% endfor %}
-                </div>
+        <div id="slotsGrid" class="slots-grid"></div>
+    </div>
 
-                <div style="margin-top: 30px;">
-                    <button type="submit">Next Step</button>
-                </div>
-            </form>
-
-            <div style="margin-top: 25px;">
-                <a href="/book" class="btn btn-secondary" style="margin-top: 0;">&#8592; Choose Different Service</a>
+    <!-- Step 4: Continue to booking (shown after time selected) -->
+    <div id="continueSection" class="continue-section">
+        <div class="booking-summary">
+            <div class="summary-line">
+                <span class="label">Service:</span>
+                <span id="finalService"></span>
             </div>
-        {% else %}
-            <div class="alert alert-error">
-                Sorry, no available slots for this date. Please try another date.
+            <div class="summary-line">
+                <span class="label">Date:</span>
+                <span id="finalDate"></span>
             </div>
-            <a href="/book" class="btn">Try Another Date</a>
-        {% endif %}
-    {% endif %}
+            <div class="summary-line">
+                <span class="label">Time:</span>
+                <span id="finalTime"></span>
+            </div>
+        </div>
+
+        <form id="continueForm" method="POST" action="/book/confirm">
+            <input type="hidden" name="service_id" id="formServiceId">
+            <input type="hidden" name="booking_date" id="formBookingDate">
+            <input type="hidden" name="booking_time" id="formBookingTime">
+            <button type="submit">Continue to Details →</button>
+        </form>
+    </div>
 </div>
+
+<script>
+    // State
+    let selectedServiceId = null;
+    let selectedServiceName = '';
+    let selectedServiceDuration = 0;
+    let selectedServiceDescription = '';
+    let selectedServicePrice = 0;
+    let selectedDate = '{{ today }}';
+    let selectedTime = null;
+
+    // Category accordion
+    function toggleCategory(header) {
+        const wasOpen = header.classList.contains('open');
+
+        document.querySelectorAll('.category-header').forEach(h => {
+            h.classList.remove('open');
+            h.nextElementSibling.classList.remove('open');
+        });
+
+        if (!wasOpen) {
+            header.classList.add('open');
+            header.nextElementSibling.classList.add('open');
+        }
+    }
+
+    // Service selection
+    function selectService(card, serviceId, name, duration, description, price) {
+        event.stopPropagation();
+
+        // Update state
+        selectedServiceId = serviceId;
+        selectedServiceName = name;
+        selectedServiceDuration = duration;
+        selectedServiceDescription = description;
+        selectedServicePrice = price;
+        selectedTime = null;
+
+        // Visual feedback
+        document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+
+        // Update summary
+        document.getElementById('summaryServiceName').textContent = name;
+        document.getElementById('summaryDuration').textContent = duration;
+        document.getElementById('summaryDescription').textContent = description ? ' • ' + description : '';
+        document.getElementById('summaryPrice').textContent = price > 0 ? '£' + price.toFixed(2) : '';
+
+        // Show/hide sections
+        document.getElementById('selectedServiceSummary').style.display = 'flex';
+        document.getElementById('serviceSelection').style.display = 'none';
+        document.getElementById('dateSelection').classList.add('show');
+        document.getElementById('timeSlotsSection').classList.add('show');
+        document.getElementById('continueSection').classList.remove('show');
+
+        // Generate quick date buttons
+        generateQuickDates();
+
+        // Load slots for current date
+        loadAvailableSlots();
+    }
+
+    // Change service (go back)
+    function changeService() {
+        selectedServiceId = null;
+        selectedTime = null;
+
+        document.querySelectorAll('.service-card').forEach(c => c.classList.remove('selected'));
+
+        document.getElementById('selectedServiceSummary').style.display = 'none';
+        document.getElementById('serviceSelection').style.display = 'block';
+        document.getElementById('dateSelection').classList.remove('show');
+        document.getElementById('timeSlotsSection').classList.remove('show');
+        document.getElementById('continueSection').classList.remove('show');
+    }
+
+    // Generate quick date buttons (Today, Tomorrow, + next 5 days)
+    function generateQuickDates() {
+        const container = document.getElementById('quickDates');
+        container.innerHTML = '';
+
+        const today = new Date();
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+
+            const dateStr = date.toISOString().split('T')[0];
+            const dayName = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : dayNames[date.getDay()];
+            const dayNum = date.getDate();
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'quick-date-btn' + (dateStr === selectedDate ? ' active' : '');
+            btn.innerHTML = `${dayName}<br><small>${dayNum}</small>`;
+            btn.onclick = () => selectQuickDate(dateStr, btn);
+            container.appendChild(btn);
+        }
+    }
+
+    // Quick date selection
+    function selectQuickDate(dateStr, btn) {
+        selectedDate = dateStr;
+        document.getElementById('bookingDate').value = dateStr;
+
+        document.querySelectorAll('.quick-date-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        loadAvailableSlots();
+    }
+
+    // Load available slots for selected date
+    function loadAvailableSlots() {
+        if (!selectedServiceId) return;
+
+        selectedDate = document.getElementById('bookingDate').value;
+        selectedTime = null;
+
+        // Update quick date buttons
+        document.querySelectorAll('.quick-date-btn').forEach((btn, i) => {
+            const today = new Date();
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            const dateStr = date.toISOString().split('T')[0];
+            btn.classList.toggle('active', dateStr === selectedDate);
+        });
+
+        // Show loading state
+        document.getElementById('slotsLoading').style.display = 'block';
+        document.getElementById('slotsGrid').innerHTML = '';
+        document.getElementById('noSlotsMessage').style.display = 'none';
+        document.getElementById('continueSection').classList.remove('show');
+
+        // Fetch slots
+        fetch(`/api/available-slots?service_id=${selectedServiceId}&date=${selectedDate}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('slotsLoading').style.display = 'none';
+
+                if (data.slots && data.slots.length > 0) {
+                    renderSlots(data.slots);
+                } else {
+                    document.getElementById('noSlotsMessage').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading slots:', error);
+                document.getElementById('slotsLoading').style.display = 'none';
+                document.getElementById('noSlotsMessage').style.display = 'block';
+            });
+    }
+
+    // Render time slots
+    function renderSlots(slots) {
+        const grid = document.getElementById('slotsGrid');
+        grid.innerHTML = '';
+
+        slots.forEach(slot => {
+            const btn = document.createElement('div');
+            btn.className = 'slot-btn';
+            btn.textContent = slot.start;
+            btn.onclick = () => selectTimeSlot(slot.start, btn);
+            grid.appendChild(btn);
+        });
+    }
+
+    // Time slot selection
+    function selectTimeSlot(time, btn) {
+        selectedTime = time;
+
+        document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+
+        // Update summary
+        const dateObj = new Date(selectedDate + 'T00:00:00');
+        const formattedDate = dateObj.toLocaleDateString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+
+        document.getElementById('finalService').textContent = selectedServiceName;
+        document.getElementById('finalDate').textContent = formattedDate;
+        document.getElementById('finalTime').textContent = time;
+
+        // Update form
+        document.getElementById('formServiceId').value = selectedServiceId;
+        document.getElementById('formBookingDate').value = selectedDate;
+        document.getElementById('formBookingTime').value = time;
+
+        // Show continue section
+        document.getElementById('continueSection').classList.add('show');
+
+        // Scroll to continue section
+        document.getElementById('continueSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // On date input change
+    document.getElementById('bookingDate').addEventListener('change', loadAvailableSlots);
+</script>
 {% endblock %}
