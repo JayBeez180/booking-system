@@ -883,19 +883,21 @@ def admin_calendar():
     # Get all client emails AND phones that have notes (for showing indicators)
     emails_with_notes = set()
     phones_with_notes = set()
-    # Check ClientNote table (new system)
-    all_notes = ClientNote.query.all()
-    for note in all_notes:
-        emails_with_notes.add(note.client_email.lower())
-    # Also check Client.notes field for backwards compatibility
-    clients_with_notes = Client.query.filter(Client.notes.isnot(None), Client.notes != '').all()
-    for client in clients_with_notes:
-        if client.email:
-            emails_with_notes.add(client.email.lower())
-        if client.phone:
-            phones_with_notes.add(client.phone)
-    print(f"[DEBUG] Emails with notes: {emails_with_notes}")
-    print(f"[DEBUG] Phones with notes: {phones_with_notes}")
+    try:
+        # Check ClientNote table (new system)
+        all_notes = ClientNote.query.all()
+        for note in all_notes:
+            if note.client_email:
+                emails_with_notes.add(note.client_email.lower())
+        # Also check Client.notes field for backwards compatibility
+        clients_with_notes = Client.query.filter(Client.notes.isnot(None), Client.notes != '').all()
+        for client in clients_with_notes:
+            if client.email:
+                emails_with_notes.add(client.email.lower())
+            if client.phone:
+                phones_with_notes.add(client.phone)
+    except Exception as e:
+        print(f"Error loading notes: {e}")
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -987,8 +989,8 @@ def admin_calendar():
                             category_slug = 'other'
                     else:
                         category_slug = 'other'
-                    email_match = booking.customer_email.lower() in emails_with_notes if booking.customer_email else False
-                    phone_match = booking.customer_phone in phones_with_notes if booking.customer_phone else False
+                    email_match = (booking.customer_email or '').lower() in emails_with_notes
+                    phone_match = (booking.customer_phone or '') in phones_with_notes
                     has_notes = email_match or phone_match
                     slot['booking'] = {
                         'id': booking.id,
@@ -1134,10 +1136,9 @@ def admin_calendar():
                     category_slug = 'other'
             else:
                 category_slug = 'other'
-            email_match = booking.customer_email.lower() in emails_with_notes if booking.customer_email else False
-            phone_match = booking.customer_phone in phones_with_notes if booking.customer_phone else False
+            email_match = (booking.customer_email or '').lower() in emails_with_notes
+            phone_match = (booking.customer_phone or '') in phones_with_notes
             has_notes = email_match or phone_match
-            print(f"[DEBUG] Booking {booking.id}: email={booking.customer_email}, phone={booking.customer_phone}, has_notes={has_notes}")
             day_data['bookings'].append({
                 'id': booking.id,
                 'time': booking.booking_time,
