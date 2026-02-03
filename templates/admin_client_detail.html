@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name or 'Client' }} - Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{{ url_for('admin_clients') }}" style="color: #666; text-decoration: none;">← Back to Clients</a>
+        <h1 style="margin-top: 10px;">{{ client.name or '(No name)' }}</h1>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+    <!-- Client Info Card -->
+    <div class="card">
+        <h3 style="margin-top: 0;">Contact Information</h3>
+        <form method="POST" action="{{ url_for('admin_client_edit', client_id=client.id) }}">
+            <label>Name:</label>
+            <input type="text" name="name" value="{{ client.name or '' }}" placeholder="Client name">
+
+            <label>Email:</label>
+            <input type="email" name="email" value="{{ client.email or '' }}" placeholder="email@example.com">
+
+            <label>Phone:</label>
+            <input type="tel" name="phone" value="{{ client.phone or '' }}" placeholder="07700 900123">
+
+            <label>Notes:</label>
+            <textarea name="notes" rows="3" placeholder="Internal notes about this client">{{ client.notes or '' }}</textarea>
+
+            <div style="display: flex; align-items: center; gap: 10px; margin: 15px 0;">
+                <input type="checkbox" name="email_opt_in" value="true" {% if client.email_opt_in and not client.unsubscribed_at %}checked{% endif %} id="opt_in" style="width: auto;">
+                <label for="opt_in" style="margin: 0;">Opted in for marketing emails</label>
+            </div>
+
+            {% if client.unsubscribed_at %}
+            <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 14px;">
+                ⚠️ Client unsubscribed on {{ client.unsubscribed_at.strftime('%d %b %Y') }}
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-success">Save Changes</button>
+        </form>
+    </div>
+
+    <!-- Tags Card -->
+    <div class="card">
+        <h3 style="margin-top: 0;">Tags</h3>
+        <form method="POST" action="{{ url_for('admin_client_tags', client_id=client.id) }}">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                {% for tag in all_tags %}
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; padding: 8px 12px; border-radius: 20px; background: {% if tag in client.tags %}{{ tag.color }}{% else %}#f0f0f0{% endif %}; color: {% if tag in client.tags %}white{% else %}#333{% endif %}; transition: all 0.2s;">
+                    <input type="checkbox" name="tags" value="{{ tag.id }}" {% if tag in client.tags %}checked{% endif %} style="display: none;">
+                    {{ tag.name }}
+                </label>
+                {% else %}
+                <p style="color: #666; margin: 0;">No tags created yet. <a href="{{ url_for('admin_client_tags_list') }}">Create tags</a></p>
+                {% endfor %}
+            </div>
+            {% if all_tags %}
+            <button type="submit" class="btn">Update Tags</button>
+            {% endif %}
+        </form>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+
+        <h4 style="margin: 0 0 10px 0;">Stats</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #007bff;">{{ client.total_bookings or 0 }}</div>
+                <div style="color: #666; font-size: 13px;">Total Bookings</div>
+            </div>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 14px; font-weight: 500;">
+                    {% if client.last_booking_date %}
+                    {{ client.last_booking_date.strftime('%d %b %Y') }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </div>
+                <div style="color: #666; font-size: 13px;">Last Booking</div>
+            </div>
+        </div>
+        <p style="color: #666; font-size: 12px; margin: 10px 0 0 0;">
+            Client since {{ client.created_at.strftime('%d %b %Y') }} · Source: {{ client.source or 'booking' }}
+        </p>
+    </div>
+</div>
+
+<!-- Booking History -->
+<div class="card" style="margin-top: 20px;">
+    <h3 style="margin-top: 0;">Booking History</h3>
+    {% if bookings %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Service</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr>
+                <td>{{ booking.booking_date.strftime('%d %b %Y') }}</td>
+                <td>{{ booking.booking_time }} - {{ booking.end_time }}</td>
+                <td>{{ booking.service.name }}</td>
+                <td>
+                    <span style="display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; background: {% if booking.status == 'completed' %}#d4edda{% elif booking.status == 'confirmed' %}#cce5ff{% elif booking.status == 'cancelled' %}#f8d7da{% elif booking.status == 'no_show' %}#fff3cd{% else %}#e2e3e5{% endif %};">
+                        {{ booking.status|title }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #666; margin: 0;">No bookings found for this client.</p>
+    {% endif %}
+</div>
+
+<!-- Client Notes -->
+<div class="card" style="margin-top: 20px;">
+    <h3 style="margin-top: 0;">Client Notes</h3>
+    {% if notes %}
+    {% for note in notes %}
+    <div style="background: {% if note.is_alert %}#fff3cd{% else %}#f8f9fa{% endif %}; padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+        <div style="white-space: pre-wrap;">{{ note.note }}</div>
+        <div style="color: #999; font-size: 12px; margin-top: 10px;">
+            {{ note.created_at.strftime('%d %b %Y at %H:%M') }}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p style="color: #666; margin: 0;">No notes for this client.</p>
+    {% endif %}
+</div>
+
+<style>
+.card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+</style>
+
+<script>
+// Toggle tag selection styling
+document.querySelectorAll('input[name="tags"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const label = this.parentElement;
+        const tagColor = '{{ all_tags[0].color if all_tags else "#6366f1" }}';
+        if (this.checked) {
+            label.style.background = this.parentElement.dataset.color || '#6366f1';
+            label.style.color = 'white';
+        } else {
+            label.style.background = '#f0f0f0';
+            label.style.color = '#333';
+        }
+    });
+});
+</script>
+{% endblock %}

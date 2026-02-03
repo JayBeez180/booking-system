@@ -2546,6 +2546,10 @@ def admin_settings():
         'business_phone': Settings.get('business_phone'),
         'business_address': Settings.get('business_address'),
         'email_enabled': Settings.get('email_enabled'),
+        'email_provider': Settings.get('email_provider', 'brevo'),
+        'brevo_api_key': Settings.get('brevo_api_key'),
+        'email_from_address': Settings.get('email_from_address'),
+        'email_from_name': Settings.get('email_from_name'),
         'smtp_server': Settings.get('smtp_server'),
         'smtp_port': Settings.get('smtp_port'),
         'smtp_username': Settings.get('smtp_username'),
@@ -2572,6 +2576,15 @@ def save_settings_from_form(form):
 
     # Email settings
     Settings.set('email_enabled', 'true' if form.get('email_enabled') else 'false')
+    Settings.set('email_provider', form.get('email_provider', 'brevo'))
+
+    # Brevo settings
+    if form.get('brevo_api_key'):  # Only update if provided
+        Settings.set('brevo_api_key', form.get('brevo_api_key', ''))
+    Settings.set('email_from_address', form.get('email_from_address', ''))
+    Settings.set('email_from_name', form.get('email_from_name', ''))
+
+    # Legacy SMTP settings
     Settings.set('smtp_server', form.get('smtp_server', ''))
     Settings.set('smtp_port', form.get('smtp_port', '587'))
     Settings.set('smtp_username', form.get('smtp_username', ''))
@@ -2586,6 +2599,558 @@ def save_settings_from_form(form):
     Settings.set('send_day_after_email', 'true' if form.get('send_day_after_email') else 'false')
     Settings.set('send_followup_email', 'true' if form.get('send_followup_email') else 'false')
     Settings.set('google_review_link', form.get('google_review_link', ''))
+
+
+# ==================== CLIENT MANAGEMENT ====================
+
+@app.route('/admin/clients')
+@login_required
+def admin_clients():
+    """Client list with search and filtering"""
+    from models import Client, ClientTag
+
+    # Get filter parameters
+    search = request.args.get('search', '').strip()
+    tag_id = request.args.get('tag', type=int)
+    opt_in = request.args.get('opt_in')
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+
+    # Build query
+    query = Client.query
+
+    if search:
+        search_term = f'%{search}%'
+        query = query.filter(
+            db.or_(
+                Client.name.ilike(search_term),
+                Client.email.ilike(search_term),
+                Client.phone.ilike(search_term)
+            )
+        )
+
+    if tag_id:
+        query = query.filter(Client.tags.any(id=tag_id))
+
+    if opt_in == 'yes':
+        query = query.filter(Client.email_opt_in == True, Client.unsubscribed_at.is_(None))
+    elif opt_in == 'no':
+        query = query.filter(db.or_(Client.email_opt_in == False, Client.unsubscribed_at.isnot(None)))
+
+    # Order by most recent
+    query = query.order_by(Client.created_at.desc())
+
+    # Paginate
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    clients = pagination.items
+
+    # Get all tags for filter dropdown
+    tags = ClientTag.query.order_by(ClientTag.name).all()
+
+    # Stats
+    total_clients = Client.query.count()
+    opted_in_count = Client.query.filter(Client.email_opt_in == True, Client.unsubscribed_at.is_(None)).count()
+
+    return render_template('admin_clients.html',
+        clients=clients,
+        pagination=pagination,
+        tags=tags,
+        search=search,
+        selected_tag=tag_id,
+        opt_in=opt_in,
+        total_clients=total_clients,
+        opted_in_count=opted_in_count
+    )
+
+
+@app.route('/admin/clients/import', methods=['GET', 'POST'])
+@login_required
+def admin_clients_import():
+    """Import clients from CSV"""
+    from models import Client, ClientTag, ClientTagAssignment
+    import csv
+    import io
+    import secrets
+
+    import_result = None
+
+    if request.method == 'POST':
+        if 'csv_file' not in request.files:
+            flash('No file selected', 'error')
+            return redirect(url_for('admin_clients_import'))
+
+        file = request.files['csv_file']
+        if file.filename == '':
+            flash('No file selected', 'error')
+            return redirect(url_for('admin_clients_import'))
+
+        if not file.filename.endswith('.csv'):
+            flash('Please upload a CSV file', 'error')
+            return redirect(url_for('admin_clients_import'))
+
+        # Get column mappings
+        col_name = request.form.get('col_name', '')
+        col_email = request.form.get('col_email', '')
+        col_phone = request.form.get('col_phone', '')
+        col_tags = request.form.get('col_tags', '')
+        duplicate_action = request.form.get('duplicate_action', 'update')
+
+        # Parse CSV
+        try:
+            content = file.read().decode('utf-8-sig')  # Handle BOM
+            reader = csv.reader(io.StringIO(content))
+            rows = list(reader)
+        except Exception as e:
+            flash(f'Error reading CSV: {str(e)}', 'error')
+            return redirect(url_for('admin_clients_import'))
+
+        if len(rows) < 2:
+            flash('CSV file is empty or has no data rows', 'error')
+            return redirect(url_for('admin_clients_import'))
+
+        headers = rows[0]
+        data_rows = rows[1:]
+
+        # Convert column indices
+        name_idx = int(col_name) if col_name else None
+        email_idx = int(col_email) if col_email else None
+        phone_idx = int(col_phone) if col_phone else None
+        tags_idx = int(col_tags) if col_tags else None
+
+        if email_idx is None and phone_idx is None:
+            flash('You must map at least Email or Phone column', 'error')
+            return redirect(url_for('admin_clients_import'))
+
+        # Process rows
+        created = 0
+        updated = 0
+        skipped = 0
+        errors = []
+
+        for row_num, row in enumerate(data_rows, start=2):
+            try:
+                # Extract values
+                name = row[name_idx].strip() if name_idx is not None and name_idx < len(row) else None
+                email = row[email_idx].strip().lower() if email_idx is not None and email_idx < len(row) else None
+                phone = row[phone_idx].strip() if phone_idx is not None and phone_idx < len(row) else None
+                tags_str = row[tags_idx].strip() if tags_idx is not None and tags_idx < len(row) else None
+
+                # Skip empty rows
+                if not email and not phone:
+                    skipped += 1
+                    continue
+
+                # Find existing client by email OR phone
+                existing = None
+                if email:
+                    existing = Client.query.filter_by(email=email).first()
+                if not existing and phone:
+                    # Normalize phone for comparison
+                    normalized = ''.join(filter(str.isdigit, phone))
+                    if normalized:
+                        for c in Client.query.filter(Client.phone.isnot(None)).all():
+                            c_norm = ''.join(filter(str.isdigit, c.phone)) if c.phone else ''
+                            if c_norm and c_norm == normalized:
+                                existing = c
+                                break
+
+                if existing:
+                    if duplicate_action == 'skip':
+                        skipped += 1
+                        continue
+                    # Update existing
+                    if name and not existing.name:
+                        existing.name = name
+                    if email and not existing.email:
+                        existing.email = email
+                    if phone and not existing.phone:
+                        existing.phone = phone
+                    updated += 1
+                    client = existing
+                else:
+                    # Create new client
+                    client = Client(
+                        name=name,
+                        email=email,
+                        phone=phone,
+                        source='import',
+                        unsubscribe_token=secrets.token_urlsafe(32)
+                    )
+                    db.session.add(client)
+                    created += 1
+
+                # Handle tags
+                if tags_str:
+                    tag_names = [t.strip() for t in tags_str.split(',') if t.strip()]
+                    for tag_name in tag_names:
+                        # Find or create tag
+                        tag = ClientTag.query.filter_by(name=tag_name).first()
+                        if not tag:
+                            tag = ClientTag(name=tag_name)
+                            db.session.add(tag)
+                            db.session.flush()
+
+                        # Add tag to client if not already assigned
+                        if tag not in client.tags:
+                            client.tags.append(tag)
+
+            except Exception as e:
+                errors.append(f'Row {row_num}: {str(e)}')
+
+        db.session.commit()
+
+        import_result = {
+            'created': created,
+            'updated': updated,
+            'skipped': skipped,
+            'errors': errors
+        }
+
+        if not errors:
+            flash(f'Import complete! Created {created}, updated {updated}, skipped {skipped}', 'success')
+
+    return render_template('admin_clients_import.html', import_result=import_result)
+
+
+@app.route('/admin/clients/<int:client_id>')
+@login_required
+def admin_client_detail(client_id):
+    """View/edit client details"""
+    from models import Client, ClientTag, ClientNote, Booking
+
+    client = Client.query.get_or_404(client_id)
+
+    # Get client's bookings
+    bookings = Booking.query.filter(
+        db.or_(
+            Booking.customer_email == client.email,
+            Booking.customer_phone == client.phone
+        ) if client.email and client.phone else (
+            Booking.customer_email == client.email if client.email else Booking.customer_phone == client.phone
+        )
+    ).order_by(Booking.booking_date.desc()).limit(20).all()
+
+    # Get client notes
+    notes = ClientNote.query.filter_by(client_id=client.id).order_by(ClientNote.created_at.desc()).all()
+    if not notes and client.email:
+        # Also check for legacy notes by email
+        notes = ClientNote.query.filter_by(client_email=client.email).order_by(ClientNote.created_at.desc()).all()
+
+    # All tags for assignment
+    all_tags = ClientTag.query.order_by(ClientTag.name).all()
+
+    return render_template('admin_client_detail.html',
+        client=client,
+        bookings=bookings,
+        notes=notes,
+        all_tags=all_tags
+    )
+
+
+@app.route('/admin/clients/<int:client_id>/edit', methods=['POST'])
+@login_required
+def admin_client_edit(client_id):
+    """Update client details"""
+    from models import Client
+
+    client = Client.query.get_or_404(client_id)
+
+    client.name = request.form.get('name', client.name)
+    client.email = request.form.get('email', client.email)
+    client.phone = request.form.get('phone', client.phone)
+    client.notes = request.form.get('notes', client.notes)
+    client.email_opt_in = request.form.get('email_opt_in') == 'true'
+
+    db.session.commit()
+    flash('Client updated successfully', 'success')
+    return redirect(url_for('admin_client_detail', client_id=client_id))
+
+
+@app.route('/admin/clients/<int:client_id>/tags', methods=['POST'])
+@login_required
+def admin_client_tags(client_id):
+    """Update client tags"""
+    from models import Client, ClientTag
+
+    client = Client.query.get_or_404(client_id)
+    tag_ids = request.form.getlist('tags')
+
+    # Clear existing tags and add selected ones
+    client.tags = []
+    for tag_id in tag_ids:
+        tag = ClientTag.query.get(int(tag_id))
+        if tag:
+            client.tags.append(tag)
+
+    db.session.commit()
+    flash('Tags updated', 'success')
+    return redirect(url_for('admin_client_detail', client_id=client_id))
+
+
+@app.route('/admin/clients/tags')
+@login_required
+def admin_client_tags_list():
+    """Manage client tags"""
+    from models import ClientTag
+
+    tags = ClientTag.query.order_by(ClientTag.name).all()
+    return render_template('admin_client_tags.html', tags=tags)
+
+
+@app.route('/admin/clients/tags/add', methods=['POST'])
+@login_required
+def admin_client_tag_add():
+    """Create a new tag"""
+    from models import ClientTag
+
+    name = request.form.get('name', '').strip()
+    color = request.form.get('color', '#6366f1')
+
+    if not name:
+        flash('Tag name is required', 'error')
+        return redirect(url_for('admin_client_tags_list'))
+
+    if ClientTag.query.filter_by(name=name).first():
+        flash('Tag already exists', 'error')
+        return redirect(url_for('admin_client_tags_list'))
+
+    tag = ClientTag(name=name, color=color)
+    db.session.add(tag)
+    db.session.commit()
+
+    flash(f'Tag "{name}" created', 'success')
+    return redirect(url_for('admin_client_tags_list'))
+
+
+@app.route('/admin/clients/tags/<int:tag_id>/delete', methods=['POST'])
+@login_required
+def admin_client_tag_delete(tag_id):
+    """Delete a tag"""
+    from models import ClientTag
+
+    tag = ClientTag.query.get_or_404(tag_id)
+    name = tag.name
+
+    db.session.delete(tag)
+    db.session.commit()
+
+    flash(f'Tag "{name}" deleted', 'success')
+    return redirect(url_for('admin_client_tags_list'))
+
+
+# ==================== EMAIL CAMPAIGNS ====================
+
+@app.route('/admin/campaigns')
+@login_required
+def admin_campaigns():
+    """List all email campaigns"""
+    from models import EmailCampaign
+
+    campaigns = EmailCampaign.query.order_by(EmailCampaign.created_at.desc()).all()
+    return render_template('admin_campaigns.html', campaigns=campaigns)
+
+
+@app.route('/admin/campaigns/new', methods=['GET', 'POST'])
+@login_required
+def admin_campaign_new():
+    """Create a new email campaign"""
+    from models import EmailCampaign, EmailTemplate, ClientTag, Client
+
+    if request.method == 'POST':
+        campaign = EmailCampaign(
+            name=request.form.get('name', 'Untitled Campaign'),
+            subject=request.form.get('subject', ''),
+            content=request.form.get('content', ''),
+            status='draft'
+        )
+
+        # Handle targeting
+        if request.form.get('target_all') == 'true':
+            campaign.target_all = True
+        else:
+            campaign.target_all = False
+            tag_ids = request.form.getlist('target_tags')
+            campaign.set_target_tags(tag_ids)
+
+        db.session.add(campaign)
+        db.session.commit()
+
+        flash('Campaign created', 'success')
+        return redirect(url_for('admin_campaign_edit', campaign_id=campaign.id))
+
+    # Get data for form
+    templates = EmailTemplate.query.order_by(EmailTemplate.name).all()
+    tags = ClientTag.query.order_by(ClientTag.name).all()
+    total_opted_in = Client.query.filter(
+        Client.email_opt_in == True,
+        Client.unsubscribed_at.is_(None),
+        Client.email.isnot(None)
+    ).count()
+
+    return render_template('admin_campaign_edit.html',
+        campaign=None,
+        templates=templates,
+        tags=tags,
+        total_opted_in=total_opted_in
+    )
+
+
+@app.route('/admin/campaigns/<int:campaign_id>', methods=['GET', 'POST'])
+@login_required
+def admin_campaign_edit(campaign_id):
+    """Edit an existing campaign"""
+    from models import EmailCampaign, EmailTemplate, ClientTag, Client
+
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+
+    if request.method == 'POST':
+        # Don't allow editing sent campaigns
+        if campaign.status == 'sent':
+            flash('Cannot edit a sent campaign', 'error')
+            return redirect(url_for('admin_campaign_edit', campaign_id=campaign_id))
+
+        campaign.name = request.form.get('name', campaign.name)
+        campaign.subject = request.form.get('subject', campaign.subject)
+        campaign.content = request.form.get('content', campaign.content)
+
+        # Handle targeting
+        if request.form.get('target_all') == 'true':
+            campaign.target_all = True
+            campaign.target_tag_ids = None
+        else:
+            campaign.target_all = False
+            tag_ids = request.form.getlist('target_tags')
+            campaign.set_target_tags(tag_ids)
+
+        db.session.commit()
+        flash('Campaign saved', 'success')
+        return redirect(url_for('admin_campaign_edit', campaign_id=campaign_id))
+
+    templates = EmailTemplate.query.order_by(EmailTemplate.name).all()
+    tags = ClientTag.query.order_by(ClientTag.name).all()
+    total_opted_in = Client.query.filter(
+        Client.email_opt_in == True,
+        Client.unsubscribed_at.is_(None),
+        Client.email.isnot(None)
+    ).count()
+
+    return render_template('admin_campaign_edit.html',
+        campaign=campaign,
+        templates=templates,
+        tags=tags,
+        total_opted_in=total_opted_in
+    )
+
+
+@app.route('/admin/campaigns/<int:campaign_id>/send', methods=['POST'])
+@login_required
+def admin_campaign_send(campaign_id):
+    """Start sending a campaign"""
+    from models import EmailCampaign, CampaignRecipient, Client, ClientTag
+
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+
+    if campaign.status not in ['draft']:
+        flash('Campaign has already been sent or is sending', 'error')
+        return redirect(url_for('admin_campaign_edit', campaign_id=campaign_id))
+
+    # Build recipient list
+    query = Client.query.filter(
+        Client.email_opt_in == True,
+        Client.unsubscribed_at.is_(None),
+        Client.email.isnot(None)
+    )
+
+    # Filter by tags if not targeting all
+    if not campaign.target_all and campaign.target_tag_ids:
+        tag_ids = campaign.get_target_tags()
+        query = query.filter(Client.tags.any(ClientTag.id.in_(tag_ids)))
+
+    clients = query.all()
+
+    if not clients:
+        flash('No eligible recipients for this campaign', 'error')
+        return redirect(url_for('admin_campaign_edit', campaign_id=campaign_id))
+
+    # Create recipient records
+    for client in clients:
+        recipient = CampaignRecipient(
+            campaign_id=campaign.id,
+            client_id=client.id,
+            status='pending'
+        )
+        db.session.add(recipient)
+
+    campaign.total_recipients = len(clients)
+    campaign.status = 'sending'
+    db.session.commit()
+
+    # Send emails (in batches to avoid timeout)
+    from email_service import send_campaign_email
+
+    sent_count = 0
+    for client in clients[:50]:  # Send first batch immediately
+        if send_campaign_email(campaign, client):
+            sent_count += 1
+
+    remaining = len(clients) - 50
+    if remaining > 0:
+        flash(f'Sending started! {sent_count} emails sent, {remaining} remaining (will continue in background)', 'success')
+    else:
+        campaign.status = 'sent'
+        campaign.sent_at = datetime.utcnow()
+        db.session.commit()
+        flash(f'Campaign sent to {sent_count} recipients!', 'success')
+
+    return redirect(url_for('admin_campaign_edit', campaign_id=campaign_id))
+
+
+@app.route('/admin/campaigns/<int:campaign_id>/delete', methods=['POST'])
+@login_required
+def admin_campaign_delete(campaign_id):
+    """Delete a campaign"""
+    from models import EmailCampaign
+
+    campaign = EmailCampaign.query.get_or_404(campaign_id)
+
+    if campaign.status == 'sending':
+        flash('Cannot delete a campaign that is currently sending', 'error')
+        return redirect(url_for('admin_campaigns'))
+
+    db.session.delete(campaign)
+    db.session.commit()
+
+    flash('Campaign deleted', 'success')
+    return redirect(url_for('admin_campaigns'))
+
+
+@app.route('/admin/campaigns/templates')
+@login_required
+def admin_campaign_templates():
+    """Manage email templates"""
+    from models import EmailTemplate
+
+    templates = EmailTemplate.query.order_by(EmailTemplate.category, EmailTemplate.name).all()
+    return render_template('admin_campaign_templates.html', templates=templates)
+
+
+@app.route('/unsubscribe/<token>')
+def unsubscribe(token):
+    """Handle email unsubscribe"""
+    from models import Client
+
+    client = Client.query.filter_by(unsubscribe_token=token).first()
+
+    if not client:
+        return render_template('unsubscribe.html', success=False, error='Invalid unsubscribe link')
+
+    if request.args.get('confirm') == 'yes':
+        client.email_opt_in = False
+        client.unsubscribed_at = datetime.utcnow()
+        db.session.commit()
+        return render_template('unsubscribe.html', success=True, client=client)
+
+    return render_template('unsubscribe.html', success=None, client=client, token=token)
 
 
 # ==================== API ENDPOINTS (for future embedding) ====================
@@ -3316,6 +3881,92 @@ with app.app_context():
         db.session.add(owner)
         db.session.commit()
         print(f"Created initial owner account: {ADMIN_USERNAME}")
+
+    # Seed default email templates if none exist
+    from models import EmailTemplate
+    if EmailTemplate.query.count() == 0:
+        default_templates = [
+            EmailTemplate(
+                name='Promotion Announcement',
+                description='Announce a special offer or discount',
+                subject='Special Offer Just For You, {name}!',
+                category='promotion',
+                is_default=True,
+                content='''<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+<h2 style="color: #c9a962;">Hi {name}!</h2>
+
+<p>We've got something special just for you...</p>
+
+<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+<h3 style="color: #333; margin: 0;">YOUR EXCLUSIVE OFFER</h3>
+<p style="font-size: 24px; color: #c9a962; font-weight: bold;">[Insert your offer here]</p>
+<p style="color: #666;">Valid until [date]</p>
+</div>
+
+<p>Book your appointment today to take advantage of this offer!</p>
+
+<p style="margin-top: 30px;">
+<a href="https://whitethornpiercing.co.uk/book" style="background: #c9a962; color: #142b26; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">BOOK NOW</a>
+</p>
+
+<p style="color: #888; margin-top: 30px;">See you soon!<br>White Thorn Piercing</p>
+</div>'''
+            ),
+            EmailTemplate(
+                name='New Arrival Announcement',
+                description='Announce new jewellery or services',
+                subject='Something New Just Arrived! ✨',
+                category='announcement',
+                is_default=True,
+                content='''<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+<h2 style="color: #c9a962;">Hi {name}!</h2>
+
+<p>Exciting news - we have something new to share with you!</p>
+
+<div style="background: #142b26; color: #f5f1e8; padding: 25px; border-radius: 8px; margin: 20px 0;">
+<h3 style="color: #c9a962; margin-top: 0;">NEW ARRIVALS</h3>
+<p>[Describe your new products or services here]</p>
+</div>
+
+<p>Pop in to see them in person, or book an appointment to get yours!</p>
+
+<p style="margin-top: 30px;">
+<a href="https://whitethornpiercing.co.uk/book" style="background: #c9a962; color: #142b26; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">BOOK APPOINTMENT</a>
+</p>
+
+<p style="color: #888; margin-top: 30px;">White Thorn Piercing</p>
+</div>'''
+            ),
+            EmailTemplate(
+                name='We Miss You',
+                description='Re-engage clients who haven\'t visited recently',
+                subject="It's Been a While, {name}! We Miss You 💜",
+                category='reengagement',
+                is_default=True,
+                content='''<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+<h2 style="color: #c9a962;">Hi {name}!</h2>
+
+<p>It's been a while since we last saw you, and we wanted to check in!</p>
+
+<p>Whether you're thinking about a new piercing, need a check-up on an existing one, or just want to browse our latest jewellery collection - we'd love to see you.</p>
+
+<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #c9a962;">
+<strong>Quick reminder:</strong> If you had a piercing done with us, it's always a good idea to come in for a check-up to make sure everything is healing perfectly!
+</div>
+
+<p style="margin-top: 30px;">
+<a href="https://whitethornpiercing.co.uk/book" style="background: #c9a962; color: #142b26; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">BOOK YOUR VISIT</a>
+</p>
+
+<p style="color: #888; margin-top: 30px;">Hope to see you soon!<br>White Thorn Piercing</p>
+</div>'''
+            ),
+        ]
+
+        for template in default_templates:
+            db.session.add(template)
+        db.session.commit()
+        print("Created default email templates")
 
 # Start the reminder scheduler (runs in background thread)
 start_reminder_scheduler()

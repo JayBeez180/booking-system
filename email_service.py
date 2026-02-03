@@ -1,75 +1,126 @@
 """
-Email service for sending booking confirmations and reminders.
-Uses SMTP to send emails with configurable settings from the database.
+Email service for sending booking confirmations, reminders, and marketing campaigns.
+Supports both Brevo API (recommended) and legacy SMTP.
 """
 
 import smtplib
+import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from models import db, Booking, Settings
 
 
-def get_smtp_connection():
-    """Create and return an SMTP connection using settings from database"""
-    if not Settings.get_bool('email_enabled'):
-        return None
+def send_email_brevo(to_email, subject, html_body, text_body=None):
+    """Send email via Brevo API"""
+    api_key = Settings.get('brevo_api_key')
+    from_email = Settings.get('email_from_address') or Settings.get('smtp_username')
+    from_name = Settings.get('email_from_name') or Settings.get('business_name', 'White Thorn Piercing')
 
+    if not api_key or not from_email:
+        print(f"[EMAIL] Brevo not configured - API key or from address missing")
+        return False
+
+    try:
+        response = requests.post(
+            'https://api.brevo.com/v3/smtp/email',
+            headers={
+                'api-key': api_key,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            json={
+                'sender': {'email': from_email, 'name': from_name},
+                'to': [{'email': to_email}],
+                'subject': subject,
+                'htmlContent': html_body,
+                'textContent': text_body or ''
+            },
+            timeout=30
+        )
+
+        if response.status_code == 201:
+            print(f"[EMAIL] Brevo: Sent to {to_email}: {subject}")
+            return True
+        else:
+            print(f"[EMAIL ERROR] Brevo API error {response.status_code}: {response.text}")
+            return False
+
+    except requests.exceptions.Timeout:
+        print(f"[EMAIL ERROR] Brevo API timeout")
+        return False
+    except Exception as e:
+        print(f"[EMAIL ERROR] Brevo API exception: {e}")
+        return False
+
+
+def send_email_smtp(to_email, subject, html_body, text_body=None):
+    """Send email via legacy SMTP (may not work on Railway)"""
     server = Settings.get('smtp_server')
     port = Settings.get_int('smtp_port', 587)
     username = Settings.get('smtp_username')
     password = Settings.get('smtp_password')
     use_tls = Settings.get_bool('smtp_use_tls')
+    business_name = Settings.get('business_name', 'Booking System')
 
     if not server or not username:
-        return None
-
-    try:
-        smtp = smtplib.SMTP(server, port, timeout=10)  # 10 second timeout
-        if use_tls:
-            smtp.starttls()
-        if password:
-            smtp.login(username, password)
-        return smtp
-    except Exception as e:
-        print(f"[EMAIL ERROR] Failed to connect to SMTP: {e}")
-        return None
-
-
-def send_email(to_email, subject, html_body, text_body=None):
-    """Send an email using configured SMTP settings"""
-    if not Settings.get_bool('email_enabled'):
-        print(f"[EMAIL] Email disabled - would send to {to_email}: {subject}")
+        print(f"[EMAIL] SMTP not configured")
         return False
-
-    from_email = Settings.get('smtp_username')
-    business_name = Settings.get('business_name', 'Booking System')
 
     # Create message
     msg = MIMEMultipart('alternative')
     msg['Subject'] = subject
-    msg['From'] = f"{business_name} <{from_email}>"
+    msg['From'] = f"{business_name} <{username}>"
     msg['To'] = to_email
 
-    # Add text and HTML parts
     if text_body:
         msg.attach(MIMEText(text_body, 'plain'))
     msg.attach(MIMEText(html_body, 'html'))
 
-    # Send
-    smtp = get_smtp_connection()
-    if not smtp:
-        print(f"[EMAIL] Could not connect to SMTP server")
-        return False
-
     try:
-        smtp.sendmail(from_email, to_email, msg.as_string())
+        smtp = smtplib.SMTP(server, port, timeout=10)
+        if use_tls:
+            smtp.starttls()
+        if password:
+            smtp.login(username, password)
+        smtp.sendmail(username, to_email, msg.as_string())
         smtp.quit()
-        print(f"[EMAIL] Sent to {to_email}: {subject}")
+        print(f"[EMAIL] SMTP: Sent to {to_email}: {subject}")
         return True
     except Exception as e:
-        print(f"[EMAIL ERROR] Failed to send email: {e}")
+        print(f"[EMAIL ERROR] SMTP failed: {e}")
         return False
+
+
+def send_email(to_email, subject, html_body, text_body=None):
+    """Send an email using the configured provider (Brevo or SMTP)"""
+    if not Settings.get_bool('email_enabled'):
+        print(f"[EMAIL] Email disabled - would send to {to_email}: {subject}")
+        return False
+
+    provider = Settings.get('email_provider', 'brevo')
+
+    if provider == 'brevo':
+        return send_email_brevo(to_email, subject, html_body, text_body)
+    else:
+        return send_email_smtp(to_email, subject, html_body, text_body)
+
+
+def send_marketing_email(to_email, subject, html_body, text_body=None, unsubscribe_url=None):
+    """Send a marketing email with unsubscribe link injected"""
+    # Inject unsubscribe link if provided
+    if unsubscribe_url and '</body>' in html_body:
+        unsubscribe_html = f'''
+        <div style="text-align: center; padding: 20px; font-size: 12px; color: #888;">
+            <a href="{unsubscribe_url}" style="color: #888;">Unsubscribe from marketing emails</a>
+        </div>
+        '''
+        html_body = html_body.replace('</body>', f'{unsubscribe_html}</body>')
+
+    if unsubscribe_url and text_body:
+        text_body += f"\n\n---\nUnsubscribe: {unsubscribe_url}"
+
+    return send_email(to_email, subject, html_body, text_body)
 
 
 def send_confirmation_email(booking):
@@ -1278,8 +1329,9 @@ def check_and_send_reminders(app):
 
 
 def send_test_email(to_email):
-    """Send a test email to verify SMTP settings"""
+    """Send a test email to verify email settings"""
     business_name = Settings.get('business_name', 'Booking System')
+    provider = Settings.get('email_provider', 'brevo')
 
     subject = "Test Email - White Thorn Piercing"
     html_body = f"""
@@ -1355,6 +1407,7 @@ def send_test_email(to_email):
                     <h2>Email Configuration Successful!</h2>
                     <p>If you're reading this, your email settings are working correctly.</p>
                     <p>Sent from: {business_name}</p>
+                    <p>Provider: {provider.upper()}</p>
                     <p>Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
                 </div>
             </div>
@@ -1372,7 +1425,120 @@ def send_test_email(to_email):
     If you're reading this, your email settings are working correctly.
 
     Sent from: {business_name}
+    Provider: {provider.upper()}
     Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     """
 
     return send_email(to_email, subject, html_body, text_body)
+
+
+def send_campaign_email(campaign, client, base_url='https://whitethornpiercing.co.uk'):
+    """Send a campaign email to a single client with personalization"""
+    from models import CampaignRecipient
+
+    # Get or create recipient record
+    recipient = CampaignRecipient.query.filter_by(
+        campaign_id=campaign.id,
+        client_id=client.id
+    ).first()
+
+    if not recipient:
+        recipient = CampaignRecipient(
+            campaign_id=campaign.id,
+            client_id=client.id,
+            status='pending'
+        )
+        db.session.add(recipient)
+        db.session.commit()
+
+    # Skip if already sent
+    if recipient.status == 'sent':
+        return True
+
+    # Skip if client has unsubscribed
+    if not client.email_opt_in or client.unsubscribed_at:
+        recipient.status = 'failed'
+        recipient.error_message = 'Client has unsubscribed'
+        db.session.commit()
+        return False
+
+    # Skip if no email
+    if not client.email:
+        recipient.status = 'failed'
+        recipient.error_message = 'No email address'
+        db.session.commit()
+        return False
+
+    # Personalize content
+    content = campaign.content
+    content = content.replace('{name}', client.name or 'there')
+    content = content.replace('{email}', client.email or '')
+    content = content.replace('{{name}}', client.name or 'there')
+    content = content.replace('{{email}}', client.email or '')
+
+    # Build unsubscribe URL
+    unsubscribe_url = f"{base_url}/unsubscribe/{client.unsubscribe_token}"
+
+    # Send the email
+    success = send_marketing_email(
+        to_email=client.email,
+        subject=campaign.subject,
+        html_body=content,
+        unsubscribe_url=unsubscribe_url
+    )
+
+    # Update recipient status
+    if success:
+        recipient.status = 'sent'
+        recipient.sent_at = datetime.utcnow()
+        campaign.sent_count = (campaign.sent_count or 0) + 1
+    else:
+        recipient.status = 'failed'
+        recipient.error_message = 'Failed to send'
+        campaign.failed_count = (campaign.failed_count or 0) + 1
+
+    db.session.commit()
+    return success
+
+
+def process_campaign_batch(campaign_id, batch_size=50, app=None):
+    """Process a batch of campaign recipients. Call this periodically for large campaigns."""
+    from models import EmailCampaign, CampaignRecipient, Client
+
+    def do_process():
+        campaign = EmailCampaign.query.get(campaign_id)
+        if not campaign or campaign.status not in ['sending', 'scheduled']:
+            return 0
+
+        # Mark as sending if scheduled
+        if campaign.status == 'scheduled':
+            campaign.status = 'sending'
+            db.session.commit()
+
+        # Get pending recipients
+        pending = CampaignRecipient.query.filter_by(
+            campaign_id=campaign_id,
+            status='pending'
+        ).limit(batch_size).all()
+
+        if not pending:
+            # All done - mark campaign as sent
+            campaign.status = 'sent'
+            campaign.sent_at = datetime.utcnow()
+            db.session.commit()
+            return 0
+
+        sent_count = 0
+        for recipient in pending:
+            client = Client.query.get(recipient.client_id)
+            if client:
+                if send_campaign_email(campaign, client):
+                    sent_count += 1
+
+        return sent_count
+
+    if app:
+        with app.app_context():
+            return do_process()
+    else:
+        return do_process()

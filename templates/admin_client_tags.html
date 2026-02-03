@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Tags{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Manage Client Tags</h1>
+    <a href="{{ url_for('admin_clients') }}" class="btn">← Back to Clients</a>
+</div>
+
+<!-- Add New Tag -->
+<div class="card" style="margin-bottom: 20px;">
+    <h3 style="margin-top: 0;">Create New Tag</h3>
+    <form method="POST" action="{{ url_for('admin_client_tag_add') }}" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+        <div style="flex: 1; min-width: 200px;">
+            <label>Tag Name:</label>
+            <input type="text" name="name" placeholder="e.g., VIP, Regular, New Client" required style="margin: 0;">
+        </div>
+        <div style="width: 100px;">
+            <label>Color:</label>
+            <input type="color" name="color" value="#6366f1" style="margin: 0; height: 42px; padding: 5px;">
+        </div>
+        <button type="submit" class="btn btn-success">Create Tag</button>
+    </form>
+</div>
+
+<!-- Existing Tags -->
+<div class="card">
+    <h3 style="margin-top: 0;">Existing Tags</h3>
+
+    {% if tags %}
+    <table>
+        <thead>
+            <tr>
+                <th>Tag</th>
+                <th>Clients</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tag in tags %}
+            <tr>
+                <td>
+                    <span style="display: inline-block; background: {{ tag.color }}; color: white; padding: 5px 15px; border-radius: 15px; font-weight: 500;">
+                        {{ tag.name }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{{ url_for('admin_clients', tag=tag.id) }}">
+                        {{ tag.client_count }} client{{ 's' if tag.client_count != 1 else '' }}
+                    </a>
+                </td>
+                <td>{{ tag.created_at.strftime('%d %b %Y') }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin_client_tag_delete', tag_id=tag.id) }}" style="display: inline;"
+                          onsubmit="return confirm('Delete tag \'{{ tag.name }}\'? This will remove it from all clients.');">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #666; text-align: center; padding: 30px;">
+        No tags created yet. Create your first tag above.
+    </p>
+    {% endif %}
+</div>
+
+<!-- Suggested Tags -->
+<div class="card" style="margin-top: 20px;">
+    <h3 style="margin-top: 0;">Suggested Tags</h3>
+    <p style="color: #666;">Click to quickly create common tags:</p>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <button type="button" class="quick-tag" data-name="VIP" data-color="#8b5cf6">VIP</button>
+        <button type="button" class="quick-tag" data-name="Regular" data-color="#3b82f6">Regular</button>
+        <button type="button" class="quick-tag" data-name="New Client" data-color="#10b981">New Client</button>
+        <button type="button" class="quick-tag" data-name="Loyal Customer" data-color="#f59e0b">Loyal Customer</button>
+        <button type="button" class="quick-tag" data-name="Inactive" data-color="#6b7280">Inactive</button>
+        <button type="button" class="quick-tag" data-name="Referral" data-color="#ec4899">Referral</button>
+        <button type="button" class="quick-tag" data-name="Student" data-color="#14b8a6">Student</button>
+        <button type="button" class="quick-tag" data-name="Birthday Month" data-color="#f97316">Birthday Month</button>
+    </div>
+</div>
+
+<style>
+.btn-sm {
+    padding: 5px 12px;
+    font-size: 13px;
+}
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+.quick-tag {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.quick-tag:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+</style>
+
+<script>
+document.querySelectorAll('.quick-tag').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const name = this.dataset.name;
+        const color = this.dataset.color;
+
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("admin_client_tag_add") }}';
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'hidden';
+        nameInput.name = 'name';
+        nameInput.value = name;
+        form.appendChild(nameInput);
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'hidden';
+        colorInput.name = 'color';
+        colorInput.value = color;
+        form.appendChild(colorInput);
+
+        document.body.appendChild(form);
+        form.submit();
+    });
+});
+</script>
+{% endblock %}

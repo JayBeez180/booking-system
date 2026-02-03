@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}{% if campaign %}Edit Campaign{% else %}New Campaign{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="{{ url_for('admin_campaigns') }}" style="color: #666; text-decoration: none;">← Back to Campaigns</a>
+        <h1 style="margin-top: 10px;">{% if campaign %}{{ campaign.name }}{% else %}New Campaign{% endif %}</h1>
+    </div>
+    {% if campaign and campaign.status == 'draft' %}
+    <form method="POST" action="{{ url_for('admin_campaign_delete', campaign_id=campaign.id) }}"
+          onsubmit="return confirm('Delete this campaign?');">
+        <button type="submit" class="btn btn-danger">Delete</button>
+    </form>
+    {% endif %}
+</div>
+
+{% if campaign and campaign.status in ['sending', 'sent'] %}
+<!-- Campaign Stats -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+    <div class="card" style="text-align: center; padding: 20px;">
+        <div style="font-size: 28px; font-weight: bold; color: #007bff;">{{ campaign.total_recipients or 0 }}</div>
+        <div style="color: #666;">Recipients</div>
+    </div>
+    <div class="card" style="text-align: center; padding: 20px;">
+        <div style="font-size: 28px; font-weight: bold; color: #28a745;">{{ campaign.sent_count or 0 }}</div>
+        <div style="color: #666;">Sent</div>
+    </div>
+    <div class="card" style="text-align: center; padding: 20px;">
+        <div style="font-size: 28px; font-weight: bold; color: #dc3545;">{{ campaign.failed_count or 0 }}</div>
+        <div style="color: #666;">Failed</div>
+    </div>
+    {% if campaign.sent_at %}
+    <div class="card" style="text-align: center; padding: 20px;">
+        <div style="font-size: 16px; font-weight: bold;">{{ campaign.sent_at.strftime('%d %b %Y') }}</div>
+        <div style="color: #666;">Sent Date</div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<form method="POST" action="{% if campaign %}{{ url_for('admin_campaign_edit', campaign_id=campaign.id) }}{% else %}{{ url_for('admin_campaign_new') }}{% endif %}">
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+        <!-- Main Content -->
+        <div>
+            <div class="card">
+                <h3 style="margin-top: 0;">Campaign Details</h3>
+
+                <label>Campaign Name (internal):</label>
+                <input type="text" name="name" value="{{ campaign.name if campaign else '' }}" placeholder="e.g., Summer Promotion 2024" required {% if campaign and campaign.status != 'draft' %}disabled{% endif %}>
+
+                <label>Email Subject:</label>
+                <input type="text" name="subject" value="{{ campaign.subject if campaign else '' }}" placeholder="e.g., Exclusive offer just for you!" required {% if campaign and campaign.status != 'draft' %}disabled{% endif %}>
+
+                <label>Email Content:</label>
+                <div style="background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px;">
+                    <div style="padding: 10px; border-bottom: 1px solid #ddd; background: #f8f9fa;">
+                        <button type="button" onclick="insertTag('{name}')" class="format-btn" title="Insert recipient's name">Name</button>
+                        <span style="color: #999; margin: 0 10px;">|</span>
+                        <button type="button" onclick="formatText('bold')" class="format-btn"><b>B</b></button>
+                        <button type="button" onclick="formatText('italic')" class="format-btn"><i>I</i></button>
+                        <button type="button" onclick="insertLink()" class="format-btn">🔗 Link</button>
+                    </div>
+                    <textarea name="content" id="content" rows="15" style="border: none; margin: 0; resize: vertical;" placeholder="Write your email content here... Use {name} to personalize with the recipient's name." {% if campaign and campaign.status != 'draft' %}disabled{% endif %}>{{ campaign.content if campaign else '' }}</textarea>
+                </div>
+                <small style="color: #666;">
+                    Use <code>{name}</code> to insert the recipient's name. HTML is supported.
+                </small>
+            </div>
+
+            <!-- Templates -->
+            {% if templates and (not campaign or campaign.status == 'draft') %}
+            <div class="card" style="margin-top: 20px;">
+                <h3 style="margin-top: 0;">Quick Templates</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    {% for template in templates %}
+                    <button type="button" class="btn" onclick="loadTemplate({{ template.id }}, '{{ template.subject|e }}', `{{ template.content|e }}`)">
+                        {{ template.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+            <!-- Targeting -->
+            <div class="card">
+                <h3 style="margin-top: 0;">Recipients</h3>
+
+                <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <input type="radio" name="target_all" value="true" {% if not campaign or campaign.target_all %}checked{% endif %} {% if campaign and campaign.status != 'draft' %}disabled{% endif %} style="width: auto;" onchange="toggleTagSelection()">
+                    <span>All opted-in clients ({{ total_opted_in }})</span>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <input type="radio" name="target_all" value="false" {% if campaign and not campaign.target_all %}checked{% endif %} {% if campaign and campaign.status != 'draft' %}disabled{% endif %} style="width: auto;" onchange="toggleTagSelection()">
+                    <span>Clients with specific tags</span>
+                </label>
+
+                <div id="tag-selection" style="{% if not campaign or campaign.target_all %}display: none;{% endif %} margin-left: 25px;">
+                    {% for tag in tags %}
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <input type="checkbox" name="target_tags" value="{{ tag.id }}"
+                            {% if campaign and tag.id in campaign.get_target_tags() %}checked{% endif %}
+                            {% if campaign and campaign.status != 'draft' %}disabled{% endif %}
+                            style="width: auto;">
+                        <span style="display: inline-block; background: {{ tag.color }}; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">{{ tag.name }}</span>
+                        <span style="color: #666; font-size: 12px;">({{ tag.client_count }})</span>
+                    </label>
+                    {% else %}
+                    <p style="color: #666; font-size: 13px;">No tags created. <a href="{{ url_for('admin_client_tags_list') }}">Create tags</a></p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card" style="margin-top: 20px;">
+                {% if not campaign or campaign.status == 'draft' %}
+                <button type="submit" class="btn btn-success" style="width: 100%; margin-bottom: 10px;">
+                    💾 Save Campaign
+                </button>
+                {% if campaign %}
+                <form method="POST" action="{{ url_for('admin_campaign_send', campaign_id=campaign.id) }}"
+                      onsubmit="return confirm('Send this campaign to all selected recipients? This cannot be undone.');">
+                    <button type="submit" class="btn" style="width: 100%; background: #007bff; color: white;">
+                        📤 Send Now
+                    </button>
+                </form>
+                {% endif %}
+                {% else %}
+                <div style="text-align: center; color: #666;">
+                    <div style="font-size: 24px; margin-bottom: 10px;">
+                        {% if campaign.status == 'sent' %}✅{% elif campaign.status == 'sending' %}⏳{% endif %}
+                    </div>
+                    Campaign {{ campaign.status }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Preview -->
+            {% if campaign %}
+            <div class="card" style="margin-top: 20px;">
+                <h3 style="margin-top: 0;">Preview</h3>
+                <button type="button" onclick="showPreview()" class="btn" style="width: 100%;">
+                    👁️ Preview Email
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<!-- Preview Modal -->
+<div id="preview-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; padding: 20px; overflow: auto;">
+    <div style="max-width: 650px; margin: 20px auto; background: white; border-radius: 8px; overflow: hidden;">
+        <div style="background: #f8f9fa; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+            <strong>Email Preview</strong>
+            <button onclick="closePreview()" style="background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+        </div>
+        <div id="preview-content" style="padding: 20px;"></div>
+    </div>
+</div>
+
+<style>
+.card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.format-btn {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.format-btn:hover {
+    background: #e9ecef;
+}
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+</style>
+
+<script>
+function toggleTagSelection() {
+    const targetAll = document.querySelector('input[name="target_all"]:checked').value === 'true';
+    document.getElementById('tag-selection').style.display = targetAll ? 'none' : 'block';
+}
+
+function insertTag(tag) {
+    const textarea = document.getElementById('content');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    textarea.value = text.substring(0, start) + tag + text.substring(end);
+    textarea.focus();
+    textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+}
+
+function formatText(type) {
+    const textarea = document.getElementById('content');
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = textarea.value.substring(start, end);
+
+    let wrapped;
+    if (type === 'bold') {
+        wrapped = `<strong>${selected}</strong>`;
+    } else if (type === 'italic') {
+        wrapped = `<em>${selected}</em>`;
+    }
+
+    textarea.value = textarea.value.substring(0, start) + wrapped + textarea.value.substring(end);
+    textarea.focus();
+}
+
+function insertLink() {
+    const url = prompt('Enter URL:');
+    if (url) {
+        const textarea = document.getElementById('content');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selected = textarea.value.substring(start, end) || 'Click here';
+        const link = `<a href="${url}">${selected}</a>`;
+        textarea.value = textarea.value.substring(0, start) + link + textarea.value.substring(end);
+    }
+}
+
+function loadTemplate(id, subject, content) {
+    if (confirm('Load this template? Current content will be replaced.')) {
+        document.querySelector('input[name="subject"]').value = subject;
+        document.getElementById('content').value = content;
+    }
+}
+
+function showPreview() {
+    const subject = document.querySelector('input[name="subject"]').value;
+    const content = document.getElementById('content').value;
+    const preview = content.replace(/\{name\}/g, 'John').replace(/\{\{name\}\}/g, 'John');
+
+    document.getElementById('preview-content').innerHTML = `
+        <div style="margin-bottom: 15px;">
+            <strong>Subject:</strong> ${subject.replace(/\{name\}/g, 'John')}
+        </div>
+        <hr>
+        <div style="margin-top: 15px;">
+            ${preview}
+        </div>
+    `;
+    document.getElementById('preview-modal').style.display = 'block';
+}
+
+function closePreview() {
+    document.getElementById('preview-modal').style.display = 'none';
+}
+
+// Close modal on escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePreview();
+});
+</script>
+{% endblock %}

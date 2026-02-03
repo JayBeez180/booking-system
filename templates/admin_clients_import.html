@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Import Clients{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Import Clients</h1>
+    <a href="{{ url_for('admin_clients') }}" class="btn">← Back to Clients</a>
+</div>
+
+{% if import_result %}
+<div class="import-result" style="background: {% if import_result.errors %}#fff3cd{% else %}#d4edda{% endif %}; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <h3 style="margin-top: 0;">Import Complete!</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
+        <div style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 24px; font-weight: bold; color: #28a745;">{{ import_result.created }}</div>
+            <div style="color: #666;">Created</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 24px; font-weight: bold; color: #007bff;">{{ import_result.updated }}</div>
+            <div style="color: #666;">Updated</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 24px; font-weight: bold; color: #6c757d;">{{ import_result.skipped }}</div>
+            <div style="color: #666;">Skipped</div>
+        </div>
+        {% if import_result.errors %}
+        <div style="background: rgba(255,255,255,0.5); padding: 15px; border-radius: 8px; text-align: center;">
+            <div style="font-size: 24px; font-weight: bold; color: #dc3545;">{{ import_result.errors|length }}</div>
+            <div style="color: #666;">Errors</div>
+        </div>
+        {% endif %}
+    </div>
+    {% if import_result.errors %}
+    <details>
+        <summary style="cursor: pointer; color: #856404;">View {{ import_result.errors|length }} error(s)</summary>
+        <ul style="margin-top: 10px; color: #856404;">
+            {% for error in import_result.errors[:20] %}
+            <li>{{ error }}</li>
+            {% endfor %}
+            {% if import_result.errors|length > 20 %}
+            <li>... and {{ import_result.errors|length - 20 }} more</li>
+            {% endif %}
+        </ul>
+    </details>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="card" style="margin-bottom: 20px;">
+    <h2 style="margin-top: 0;">Upload CSV File</h2>
+    <p style="color: #666;">Upload a CSV file with your client data. The system will match existing clients by email or phone to avoid duplicates.</p>
+
+    <form method="POST" enctype="multipart/form-data" id="import-form">
+        <div class="upload-area" id="upload-area" style="border: 2px dashed #ccc; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s;">
+            <input type="file" name="csv_file" id="csv_file" accept=".csv" style="display: none;">
+            <div id="upload-prompt">
+                <div style="font-size: 48px; color: #ccc; margin-bottom: 10px;">📄</div>
+                <div style="font-size: 18px; margin-bottom: 10px;">Drop your CSV file here or click to browse</div>
+                <div style="color: #999; font-size: 14px;">Maximum 10,000 rows</div>
+            </div>
+            <div id="file-selected" style="display: none;">
+                <div style="font-size: 48px; color: #28a745; margin-bottom: 10px;">✓</div>
+                <div id="file-name" style="font-size: 18px; margin-bottom: 10px;"></div>
+            </div>
+        </div>
+
+        <div id="mapping-section" style="display: none; margin-top: 20px;">
+            <h3>Column Mapping</h3>
+            <p style="color: #666;">Map your CSV columns to client fields:</p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                <div>
+                    <label>Name Column:</label>
+                    <select name="col_name" id="col_name">
+                        <option value="">-- Select Column --</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Email Column:</label>
+                    <select name="col_email" id="col_email">
+                        <option value="">-- Select Column --</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Phone Column:</label>
+                    <select name="col_phone" id="col_phone">
+                        <option value="">-- Select Column --</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Tags Column (optional):</label>
+                    <select name="col_tags" id="col_tags">
+                        <option value="">-- None --</option>
+                    </select>
+                    <small style="color: #666;">Comma-separated tag names</small>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <label>Duplicate Handling:</label>
+                <select name="duplicate_action">
+                    <option value="update">Update existing clients with new data</option>
+                    <option value="skip">Skip rows that match existing clients</option>
+                </select>
+            </div>
+
+            <div id="preview-section" style="margin-top: 20px;">
+                <h4>Preview (first 5 rows)</h4>
+                <div id="preview-table" style="overflow-x: auto;"></div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <button type="submit" class="btn btn-success" id="import-btn">
+                    Import Clients
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h3 style="margin-top: 0;">CSV Format Guide</h3>
+    <p>Your CSV should include at least one of: Email or Phone. Recommended columns:</p>
+    <table>
+        <tr>
+            <th>Column</th>
+            <th>Description</th>
+            <th>Example</th>
+        </tr>
+        <tr>
+            <td><strong>Name</strong></td>
+            <td>Client's full name</td>
+            <td>John Smith</td>
+        </tr>
+        <tr>
+            <td><strong>Email</strong></td>
+            <td>Email address (used for matching)</td>
+            <td>john@example.com</td>
+        </tr>
+        <tr>
+            <td><strong>Phone</strong></td>
+            <td>Phone number (used for matching)</td>
+            <td>07700 900123</td>
+        </tr>
+        <tr>
+            <td><strong>Tags</strong></td>
+            <td>Comma-separated tags (created if new)</td>
+            <td>VIP, Regular</td>
+        </tr>
+    </table>
+
+    <div style="margin-top: 20px; background: #e8f4fd; padding: 15px; border-radius: 8px;">
+        <strong>💡 Tip:</strong> Export from your existing system (like a spreadsheet or another booking tool) and map the columns above.
+    </div>
+</div>
+
+<style>
+.upload-area:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+.upload-area.dragover {
+    border-color: #28a745;
+    background: #e8f5e9;
+}
+#preview-table table {
+    font-size: 13px;
+    width: 100%;
+}
+#preview-table td, #preview-table th {
+    padding: 8px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+</style>
+
+<script>
+const uploadArea = document.getElementById('upload-area');
+const fileInput = document.getElementById('csv_file');
+const mappingSection = document.getElementById('mapping-section');
+const uploadPrompt = document.getElementById('upload-prompt');
+const fileSelected = document.getElementById('file-selected');
+const fileNameDisplay = document.getElementById('file-name');
+
+// Drag and drop
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect(e.dataTransfer.files[0]);
+    }
+});
+
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) {
+        handleFileSelect(e.target.files[0]);
+    }
+});
+
+function handleFileSelect(file) {
+    if (!file.name.endsWith('.csv')) {
+        alert('Please select a CSV file');
+        return;
+    }
+
+    uploadPrompt.style.display = 'none';
+    fileSelected.style.display = 'block';
+    fileNameDisplay.textContent = file.name;
+
+    // Parse CSV headers
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        if (lines.length < 2) {
+            alert('CSV file appears to be empty');
+            return;
+        }
+
+        // Parse header
+        const headers = parseCSVLine(lines[0]);
+
+        // Populate column selects
+        const selects = ['col_name', 'col_email', 'col_phone', 'col_tags'];
+        selects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            select.innerHTML = selectId === 'col_tags' ? '<option value="">-- None --</option>' : '<option value="">-- Select Column --</option>';
+            headers.forEach((header, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = header;
+                select.appendChild(option);
+
+                // Auto-select based on header name
+                const headerLower = header.toLowerCase().trim();
+                if (selectId === 'col_name' && (headerLower.includes('name') || headerLower === 'full name' || headerLower === 'customer')) {
+                    select.value = index;
+                }
+                if (selectId === 'col_email' && (headerLower.includes('email') || headerLower === 'e-mail')) {
+                    select.value = index;
+                }
+                if (selectId === 'col_phone' && (headerLower.includes('phone') || headerLower.includes('mobile') || headerLower.includes('tel'))) {
+                    select.value = index;
+                }
+                if (selectId === 'col_tags' && (headerLower.includes('tag') || headerLower.includes('group') || headerLower.includes('category'))) {
+                    select.value = index;
+                }
+            });
+        });
+
+        // Show preview table
+        const previewHtml = ['<table><tr>'];
+        headers.forEach(h => previewHtml.push(`<th>${escapeHtml(h)}</th>`));
+        previewHtml.push('</tr>');
+
+        for (let i = 1; i < Math.min(6, lines.length); i++) {
+            if (lines[i].trim()) {
+                const row = parseCSVLine(lines[i]);
+                previewHtml.push('<tr>');
+                row.forEach(cell => previewHtml.push(`<td>${escapeHtml(cell)}</td>`));
+                previewHtml.push('</tr>');
+            }
+        }
+        previewHtml.push('</table>');
+        document.getElementById('preview-table').innerHTML = previewHtml.join('');
+
+        mappingSection.style.display = 'block';
+    };
+    reader.readAsText(file);
+}
+
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current.trim());
+    return result;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

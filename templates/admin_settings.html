@@ -36,39 +36,83 @@
 
         <!-- Email Settings -->
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <h2 style="margin-top: 0;">Email Settings (SMTP)</h2>
-            <p style="color: #666;">Configure your email server to send automatic notifications.</p>
+            <h2 style="margin-top: 0;">Email Settings</h2>
+            <p style="color: #666;">Configure your email service to send automatic notifications.</p>
 
             <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                 <input type="checkbox" name="email_enabled" value="true" {% if settings.email_enabled == 'true' %}checked{% endif %} style="width: auto;">
                 <span>Enable Email Notifications</span>
             </label>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                <div>
-                    <label>SMTP Server:</label>
-                    <input type="text" name="smtp_server" value="{{ settings.smtp_server }}" placeholder="smtp.gmail.com">
+            <label>Email Provider:</label>
+            <select name="email_provider" id="email_provider" onchange="toggleEmailProvider()">
+                <option value="brevo" {% if settings.email_provider == 'brevo' or not settings.email_provider %}selected{% endif %}>Brevo (Recommended - Free 300/day)</option>
+                <option value="smtp" {% if settings.email_provider == 'smtp' %}selected{% endif %}>SMTP (Legacy)</option>
+            </select>
+
+            <!-- Brevo Settings -->
+            <div id="brevo-settings" style="margin-top: 15px; {% if settings.email_provider == 'smtp' %}display: none;{% endif %}">
+                <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <strong>Setup Brevo (Free):</strong>
+                    <ol style="margin: 10px 0 0 0; padding-left: 20px;">
+                        <li>Create a free account at <a href="https://www.brevo.com" target="_blank">brevo.com</a></li>
+                        <li>Go to SMTP & API → API Keys</li>
+                        <li>Create a new API key and paste it below</li>
+                    </ol>
                 </div>
-                <div>
-                    <label>SMTP Port:</label>
-                    <input type="number" name="smtp_port" value="{{ settings.smtp_port }}" placeholder="587">
+
+                <label>Brevo API Key:</label>
+                <input type="password" name="brevo_api_key" value="{{ settings.brevo_api_key }}" placeholder="xkeysib-...">
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div>
+                        <label>From Email Address:</label>
+                        <input type="email" name="email_from_address" value="{{ settings.email_from_address }}" placeholder="bookings@whitethornpiercing.co.uk">
+                    </div>
+                    <div>
+                        <label>From Name:</label>
+                        <input type="text" name="email_from_name" value="{{ settings.email_from_name or settings.business_name }}" placeholder="White Thorn Piercing">
+                    </div>
                 </div>
             </div>
 
-            <label>SMTP Username (Email):</label>
-            <input type="email" name="smtp_username" value="{{ settings.smtp_username }}" placeholder="your-email@gmail.com">
+            <!-- Legacy SMTP Settings -->
+            <div id="smtp-settings" style="margin-top: 15px; {% if settings.email_provider != 'smtp' %}display: none;{% endif %}">
+                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <strong>⚠️ Note:</strong> SMTP may not work on some hosting platforms (like Railway). Use Brevo instead.
+                </div>
 
-            <label>SMTP Password / App Password:</label>
-            <input type="password" name="smtp_password" value="{{ settings.smtp_password }}" placeholder="Enter password">
-            <small style="color: #666; display: block; margin-top: 5px;">
-                For Gmail, use an <a href="https://support.google.com/accounts/answer/185833" target="_blank">App Password</a> instead of your regular password.
-            </small>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div>
+                        <label>SMTP Server:</label>
+                        <input type="text" name="smtp_server" value="{{ settings.smtp_server }}" placeholder="smtp.gmail.com">
+                    </div>
+                    <div>
+                        <label>SMTP Port:</label>
+                        <input type="number" name="smtp_port" value="{{ settings.smtp_port }}" placeholder="587">
+                    </div>
+                </div>
 
-            <label style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
-                <input type="checkbox" name="smtp_use_tls" value="true" {% if settings.smtp_use_tls == 'true' %}checked{% endif %} style="width: auto;">
-                <span>Use TLS (recommended)</span>
-            </label>
+                <label>SMTP Username (Email):</label>
+                <input type="email" name="smtp_username" value="{{ settings.smtp_username }}" placeholder="your-email@gmail.com">
+
+                <label>SMTP Password / App Password:</label>
+                <input type="password" name="smtp_password" value="{{ settings.smtp_password }}" placeholder="Enter password">
+
+                <label style="display: flex; align-items: center; gap: 10px; margin-top: 15px;">
+                    <input type="checkbox" name="smtp_use_tls" value="true" {% if settings.smtp_use_tls == 'true' %}checked{% endif %} style="width: auto;">
+                    <span>Use TLS (recommended)</span>
+                </label>
+            </div>
         </div>
+
+        <script>
+        function toggleEmailProvider() {
+            var provider = document.getElementById('email_provider').value;
+            document.getElementById('brevo-settings').style.display = provider === 'brevo' ? 'block' : 'none';
+            document.getElementById('smtp-settings').style.display = provider === 'smtp' ? 'block' : 'none';
+        }
+        </script>
 
         <!-- Notification Settings -->
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
@@ -125,40 +169,4 @@
         </div>
     </form>
 
-    <!-- Common SMTP Settings Reference -->
-    <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin-top: 30px;">
-        <h3 style="margin-top: 0;">Common SMTP Settings</h3>
-        <table style="margin: 0;">
-            <tr>
-                <th>Provider</th>
-                <th>Server</th>
-                <th>Port</th>
-                <th>Notes</th>
-            </tr>
-            <tr>
-                <td><strong>Gmail</strong></td>
-                <td>smtp.gmail.com</td>
-                <td>587</td>
-                <td>Requires App Password</td>
-            </tr>
-            <tr>
-                <td><strong>Outlook/Hotmail</strong></td>
-                <td>smtp-mail.outlook.com</td>
-                <td>587</td>
-                <td>Use your Outlook email</td>
-            </tr>
-            <tr>
-                <td><strong>Yahoo</strong></td>
-                <td>smtp.mail.yahoo.com</td>
-                <td>587</td>
-                <td>Requires App Password</td>
-            </tr>
-            <tr>
-                <td><strong>SendGrid</strong></td>
-                <td>smtp.sendgrid.net</td>
-                <td>587</td>
-                <td>Use API key as password</td>
-            </tr>
-        </table>
-    </div>
 {% endblock %}

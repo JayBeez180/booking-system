@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Email Campaigns{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Email Campaigns</h1>
+    <a href="{{ url_for('admin_campaign_new') }}" class="btn btn-success">+ New Campaign</a>
+</div>
+
+{% if campaigns %}
+<table>
+    <thead>
+        <tr>
+            <th>Campaign</th>
+            <th>Status</th>
+            <th>Recipients</th>
+            <th>Sent</th>
+            <th>Created</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for campaign in campaigns %}
+        <tr>
+            <td>
+                <a href="{{ url_for('admin_campaign_edit', campaign_id=campaign.id) }}" style="font-weight: 500;">
+                    {{ campaign.name }}
+                </a>
+                <div style="color: #666; font-size: 13px;">{{ campaign.subject[:50] }}{% if campaign.subject|length > 50 %}...{% endif %}</div>
+            </td>
+            <td>
+                <span style="display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; background: {% if campaign.status == 'sent' %}#d4edda{% elif campaign.status == 'sending' %}#fff3cd{% elif campaign.status == 'draft' %}#e2e3e5{% else %}#cce5ff{% endif %};">
+                    {{ campaign.status|title }}
+                </span>
+            </td>
+            <td>{{ campaign.total_recipients or '-' }}</td>
+            <td>
+                {% if campaign.status == 'sent' %}
+                <span style="color: #28a745;">{{ campaign.sent_count or 0 }}</span>
+                {% if campaign.failed_count %}
+                <span style="color: #dc3545;"> / {{ campaign.failed_count }} failed</span>
+                {% endif %}
+                {% elif campaign.status == 'sending' %}
+                {{ campaign.sent_count or 0 }} / {{ campaign.total_recipients }}
+                {% else %}
+                -
+                {% endif %}
+            </td>
+            <td>{{ campaign.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+                <a href="{{ url_for('admin_campaign_edit', campaign_id=campaign.id) }}" class="btn btn-sm">
+                    {% if campaign.status == 'draft' %}Edit{% else %}View{% endif %}
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="card" style="text-align: center; padding: 40px;">
+    <div style="font-size: 48px; color: #ccc; margin-bottom: 15px;">📧</div>
+    <h3 style="margin: 0 0 10px 0;">No campaigns yet</h3>
+    <p style="color: #666; margin: 0 0 20px 0;">Create your first email campaign to reach your clients</p>
+    <a href="{{ url_for('admin_campaign_new') }}" class="btn btn-success">Create Campaign</a>
+</div>
+{% endif %}
+
+<style>
+.btn-sm {
+    padding: 5px 12px;
+    font-size: 13px;
+}
+</style>
+{% endblock %}

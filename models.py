@@ -193,7 +193,7 @@ class Settings(db.Model):
         'business_phone': '',
         'business_address': '',
 
-        # Email settings
+        # Email settings (legacy SMTP - deprecated)
         'email_enabled': 'false',
         'smtp_server': '',
         'smtp_port': '587',
@@ -201,10 +201,17 @@ class Settings(db.Model):
         'smtp_password': '',
         'smtp_use_tls': 'true',
 
+        # Email API settings (Brevo)
+        'email_provider': 'brevo',  # 'brevo' or 'smtp' (legacy)
+        'brevo_api_key': '',
+        'email_from_address': '',
+        'email_from_name': 'White Thorn Piercing',
+
         # Notification settings
         'send_confirmation_email': 'true',
         'send_reminder_email': 'true',
         'reminder_hours_before': '24',  # Hours before appointment to send reminder
+        'send_followup_email': 'true',
     }
 
     @classmethod
@@ -277,8 +284,236 @@ class ClientNote(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Optional link to Client model (for migration)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=True)
+
     def __repr__(self):
         return f'<ClientNote {self.client_email}>'
+
+
+class Client(db.Model):
+    """Consolidated client records for CRM and email marketing"""
+    __tablename__ = 'client'
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), index=True)
+    phone = db.Column(db.String(20), index=True)
+    name = db.Column(db.String(100))
+
+    # Source tracking
+    source = db.Column(db.String(50), default='booking')  # 'booking', 'import', 'manual'
+
+    # Email marketing
+    email_opt_in = db.Column(db.Boolean, default=True)
+    unsubscribe_token = db.Column(db.String(64), unique=True, index=True)
+    unsubscribed_at = db.Column(db.DateTime, nullable=True)
+
+    # Stats
+    total_bookings = db.Column(db.Integer, default=0)
+    last_booking_date = db.Column(db.DateTime, nullable=True)
+
+    # Additional info
+    notes = db.Column(db.Text)
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    tags = db.relationship('ClientTag', secondary='client_tag_assignment', backref='clients')
+    client_notes = db.relationship('ClientNote', backref='client', lazy=True)
+
+    def __repr__(self):
+        return f'<Client {self.name} - {self.email}>'
+
+    @classmethod
+    def find_or_create(cls, email=None, phone=None, name=None, source='booking'):
+        """Find existing client by email OR phone, or create new one"""
+        import secrets
+
+        client = None
+
+        # Try to find by email first
+        if email:
+            client = cls.query.filter_by(email=email).first()
+
+        # If not found, try by phone
+        if not client and phone:
+            # Normalize phone for comparison
+            normalized_phone = ''.join(filter(str.isdigit, phone)) if phone else None
+            if normalized_phone:
+                all_clients = cls.query.filter(cls.phone.isnot(None)).all()
+                for c in all_clients:
+                    c_phone = ''.join(filter(str.isdigit, c.phone)) if c.phone else ''
+                    if c_phone and c_phone == normalized_phone:
+                        client = c
+                        break
+
+        # Create new client if not found
+        if not client:
+            client = cls(
+                email=email,
+                phone=phone,
+                name=name,
+                source=source,
+                unsubscribe_token=secrets.token_urlsafe(32)
+            )
+            db.session.add(client)
+        else:
+            # Update name if provided and client name is empty
+            if name and not client.name:
+                client.name = name
+            # Update email if provided and not set
+            if email and not client.email:
+                client.email = email
+            # Update phone if provided and not set
+            if phone and not client.phone:
+                client.phone = phone
+
+        return client
+
+    def update_booking_stats(self):
+        """Update booking statistics for this client"""
+        from sqlalchemy import func
+
+        # Count bookings matching this client's email or phone
+        query = Booking.query.filter(
+            db.or_(
+                Booking.customer_email == self.email,
+                Booking.customer_phone == self.phone
+            ) if self.email and self.phone else (
+                Booking.customer_email == self.email if self.email else Booking.customer_phone == self.phone
+            )
+        ).filter(Booking.status != 'cancelled')
+
+        self.total_bookings = query.count()
+
+        # Get last booking date
+        last_booking = query.order_by(Booking.booking_date.desc()).first()
+        if last_booking:
+            self.last_booking_date = datetime.combine(last_booking.booking_date, datetime.min.time())
+
+
+class ClientTag(db.Model):
+    """Tags for categorizing clients"""
+    __tablename__ = 'client_tag'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    color = db.Column(db.String(7), default='#6366f1')  # Hex color
+    description = db.Column(db.String(200))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<ClientTag {self.name}>'
+
+    @property
+    def client_count(self):
+        """Get count of clients with this tag"""
+        return len(self.clients)
+
+
+class ClientTagAssignment(db.Model):
+    """Many-to-many relationship between clients and tags"""
+    __tablename__ = 'client_tag_assignment'
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+    tag_id = db.Column(db.Integer, db.ForeignKey('client_tag.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Ensure unique client-tag pairs
+    __table_args__ = (db.UniqueConstraint('client_id', 'tag_id', name='unique_client_tag'),)
+
+
+class EmailCampaign(db.Model):
+    """Email marketing campaigns"""
+    __tablename__ = 'email_campaign'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    subject = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)  # HTML content
+
+    # Status: draft, scheduled, sending, sent, cancelled
+    status = db.Column(db.String(20), default='draft')
+
+    # Scheduling
+    scheduled_at = db.Column(db.DateTime, nullable=True)
+    sent_at = db.Column(db.DateTime, nullable=True)
+
+    # Targeting
+    target_all = db.Column(db.Boolean, default=True)  # Send to all opted-in clients
+    target_tag_ids = db.Column(db.Text)  # Comma-separated tag IDs if not target_all
+
+    # Stats
+    total_recipients = db.Column(db.Integer, default=0)
+    sent_count = db.Column(db.Integer, default=0)
+    failed_count = db.Column(db.Integer, default=0)
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    recipients = db.relationship('CampaignRecipient', backref='campaign', lazy=True, cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<EmailCampaign {self.name} ({self.status})>'
+
+    def get_target_tags(self):
+        """Get list of target tag IDs"""
+        if not self.target_tag_ids:
+            return []
+        return [int(tid) for tid in self.target_tag_ids.split(',') if tid]
+
+    def set_target_tags(self, tag_ids):
+        """Set target tag IDs from list"""
+        self.target_tag_ids = ','.join(str(tid) for tid in tag_ids) if tag_ids else None
+
+
+class CampaignRecipient(db.Model):
+    """Recipients for email campaigns with delivery tracking"""
+    __tablename__ = 'campaign_recipient'
+
+    id = db.Column(db.Integer, primary_key=True)
+    campaign_id = db.Column(db.Integer, db.ForeignKey('email_campaign.id'), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
+
+    # Status: pending, sent, failed
+    status = db.Column(db.String(20), default='pending')
+    error_message = db.Column(db.Text)
+
+    # Timestamps
+    sent_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationship to client
+    client = db.relationship('Client', backref='campaign_recipients')
+
+    # Ensure unique campaign-client pairs
+    __table_args__ = (db.UniqueConstraint('campaign_id', 'client_id', name='unique_campaign_client'),)
+
+    def __repr__(self):
+        return f'<CampaignRecipient Campaign:{self.campaign_id} Client:{self.client_id} ({self.status})>'
+
+
+class EmailTemplate(db.Model):
+    """Pre-built email templates for campaigns"""
+    __tablename__ = 'email_template'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(200))
+    subject = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=False)  # HTML content
+    category = db.Column(db.String(50))  # 'promotion', 'announcement', 'reengagement'
+    is_default = db.Column(db.Boolean, default=False)  # System templates
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<EmailTemplate {self.name}>'
 
 
 class AdminUser(db.Model):

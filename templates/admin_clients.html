@@ -3,76 +3,148 @@
 {% block title %}Clients{% endblock %}
 
 {% block content %}
-    <h1>Clients</h1>
+<div class="page-header">
+    <div>
+        <h1>Clients</h1>
+        <p style="color: #666; margin: 5px 0 0 0;">
+            {{ total_clients }} total clients · {{ opted_in_count }} opted in for emails
+        </p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('admin_client_tags_list') }}" class="btn">Manage Tags</a>
+        <a href="{{ url_for('admin_clients_import') }}" class="btn btn-success">Import CSV</a>
+    </div>
+</div>
 
-    <!-- Search Form -->
-    <form method="GET" action="/admin/clients" style="margin-bottom: 20px; max-width: 100%;">
-        <div style="display: flex; gap: 10px; align-items: flex-end;">
-            <div style="flex: 1;">
-                <label style="margin-top: 0;">Search Clients:</label>
-                <input type="text" name="search" value="{{ search }}" placeholder="Search by name, email, or phone..." style="margin-top: 5px;">
-            </div>
-            <button type="submit" style="margin-top: 0;">Search</button>
-            {% if search %}
-                <a href="/admin/clients" class="btn" style="margin-top: 0;">Clear</a>
-            {% endif %}
+<!-- Filters -->
+<div class="card" style="margin-bottom: 20px; padding: 15px;">
+    <form method="GET" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+        <div style="flex: 1; min-width: 200px;">
+            <label style="font-size: 12px; color: #666;">Search</label>
+            <input type="text" name="search" value="{{ search }}" placeholder="Name, email, or phone..." style="margin: 0;">
         </div>
+        <div style="min-width: 150px;">
+            <label style="font-size: 12px; color: #666;">Tag</label>
+            <select name="tag" style="margin: 0;">
+                <option value="">All Tags</option>
+                {% for tag in tags %}
+                <option value="{{ tag.id }}" {% if selected_tag == tag.id %}selected{% endif %}>{{ tag.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="min-width: 150px;">
+            <label style="font-size: 12px; color: #666;">Email Opt-in</label>
+            <select name="opt_in" style="margin: 0;">
+                <option value="">All</option>
+                <option value="yes" {% if opt_in == 'yes' %}selected{% endif %}>Opted In</option>
+                <option value="no" {% if opt_in == 'no' %}selected{% endif %}>Opted Out</option>
+            </select>
+        </div>
+        <button type="submit" class="btn">Filter</button>
+        {% if search or selected_tag or opt_in %}
+        <a href="{{ url_for('admin_clients') }}" class="btn" style="background: #6c757d;">Clear</a>
+        {% endif %}
     </form>
+</div>
 
-    {% if search %}
-        <p style="color: #666;">Showing results for "{{ search }}"</p>
-    {% endif %}
-
-    {% if clients %}
-        <table>
+<!-- Client List -->
+{% if clients %}
+<div class="table-responsive">
+    <table>
+        <thead>
             <tr>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
-                <th>Total Bookings</th>
-                <th>Last Visit</th>
+                <th>Tags</th>
+                <th>Bookings</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
+        </thead>
+        <tbody>
             {% for client in clients %}
             <tr>
-                <td><strong>{{ client.name }}</strong></td>
                 <td>
-                    {{ client.email }}
-                    {% if client.emails|length > 1 %}
-                        <span class="badge badge-warning" title="{{ client.emails|join(', ') }}">+{{ client.emails|length - 1 }}</span>
+                    <a href="{{ url_for('admin_client_detail', client_id=client.id) }}" style="font-weight: 500;">
+                        {{ client.name or '(No name)' }}
+                    </a>
+                </td>
+                <td>{{ client.email or '-' }}</td>
+                <td>{{ client.phone or '-' }}</td>
+                <td>
+                    {% for tag in client.tags %}
+                    <span style="display: inline-block; background: {{ tag.color }}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin: 2px;">
+                        {{ tag.name }}
+                    </span>
+                    {% endfor %}
+                </td>
+                <td>{{ client.total_bookings or 0 }}</td>
+                <td>
+                    {% if client.unsubscribed_at %}
+                    <span style="color: #dc3545;">Unsubscribed</span>
+                    {% elif client.email_opt_in %}
+                    <span style="color: #28a745;">Opted In</span>
+                    {% else %}
+                    <span style="color: #6c757d;">Not opted in</span>
                     {% endif %}
                 </td>
                 <td>
-                    {{ client.phone or '-' }}
-                    {% if client.phones|length > 1 %}
-                        <span class="badge badge-warning" title="{{ client.phones|join(', ') }}">+{{ client.phones|length - 1 }}</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <span class="badge badge-success">{{ client.confirmed_bookings }} confirmed</span>
-                    {% if client.no_show_count > 0 %}
-                        <span class="badge badge-warning" title="No-shows">{{ client.no_show_count }} no-show{{ 's' if client.no_show_count > 1 else '' }}</span>
-                    {% endif %}
-                    {% if client.cancelled_bookings > 0 %}
-                        <span class="badge badge-danger">{{ client.cancelled_bookings }} cancelled</span>
-                    {% endif %}
-                </td>
-                <td>{{ client.last_booking }}</td>
-                <td>
-                    <a href="/admin/clients/{{ client.email }}" class="btn btn-small">View Profile</a>
+                    <a href="{{ url_for('admin_client_detail', client_id=client.id) }}" class="btn btn-sm">View</a>
                 </td>
             </tr>
             {% endfor %}
-        </table>
+        </tbody>
+    </table>
+</div>
 
-        <p style="margin-top: 20px; color: #666;">
-            Showing {{ clients|length }} client(s)
-        </p>
-    {% else %}
-        {% if search %}
-            <p>No clients found matching "{{ search }}".</p>
-        {% else %}
-            <p>No clients yet. Clients will appear here after they make bookings.</p>
-        {% endif %}
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<div style="display: flex; justify-content: center; gap: 5px; margin-top: 20px;">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('admin_clients', page=pagination.prev_num, search=search, tag=selected_tag, opt_in=opt_in) }}" class="btn btn-sm">← Prev</a>
     {% endif %}
+
+    <span style="padding: 8px 15px; color: #666;">
+        Page {{ pagination.page }} of {{ pagination.pages }}
+    </span>
+
+    {% if pagination.has_next %}
+    <a href="{{ url_for('admin_clients', page=pagination.next_num, search=search, tag=selected_tag, opt_in=opt_in) }}" class="btn btn-sm">Next →</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="card" style="text-align: center; padding: 40px;">
+    <div style="font-size: 48px; color: #ccc; margin-bottom: 15px;">👥</div>
+    <h3 style="margin: 0 0 10px 0;">No clients found</h3>
+    <p style="color: #666; margin: 0 0 20px 0;">
+        {% if search or selected_tag or opt_in %}
+        Try adjusting your filters
+        {% else %}
+        Import your client list to get started
+        {% endif %}
+    </p>
+    <a href="{{ url_for('admin_clients_import') }}" class="btn btn-success">Import Clients</a>
+</div>
+{% endif %}
+
+<style>
+.btn-sm {
+    padding: 5px 12px;
+    font-size: 13px;
+}
+.table-responsive {
+    overflow-x: auto;
+}
+@media (max-width: 768px) {
+    table {
+        font-size: 14px;
+    }
+    table td, table th {
+        padding: 10px 8px;
+    }
+}
+</style>
 {% endblock %}
