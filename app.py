@@ -2018,6 +2018,68 @@ def get_client_notes_api(client_email):
     })
 
 
+@app.route('/admin/clients/profile/<path:identifier>')
+@login_required
+def client_profile(identifier):
+    """Client profile page - shows booking history, notes, etc by email"""
+    from models import Client, ClientNote, Booking, Service
+    from collections import Counter
+
+    # Find client by email
+    client = Client.query.filter(
+        Client.email.ilike(identifier)
+    ).first()
+
+    # Get all bookings for this email
+    bookings = Booking.query.filter(
+        Booking.customer_email.ilike(identifier)
+    ).order_by(Booking.booking_date.desc()).all()
+
+    # Build client info from bookings if no client record
+    if not client and bookings:
+        # Create a temporary client-like object
+        class TempClient:
+            pass
+        client = TempClient()
+        client.email = identifier
+        client.name = bookings[0].customer_name if bookings else identifier
+        client.phone = bookings[0].customer_phone if bookings else None
+        client.emails = {identifier.lower()}
+        client.phones = {bookings[0].customer_phone} if bookings and bookings[0].customer_phone else set()
+        client.total_bookings = len(bookings)
+        client.confirmed_bookings = len([b for b in bookings if b.status in ('confirmed', 'completed')])
+        client.cancelled_bookings = len([b for b in bookings if b.status == 'cancelled'])
+        client.no_show_count = len([b for b in bookings if b.status == 'no_show'])
+        client.first_visit = bookings[-1].booking_date.strftime('%d %b %Y') if bookings else '-'
+        client.last_visit = bookings[0].booking_date.strftime('%d %b %Y') if bookings else '-'
+        client.total_spent = sum(b.service.price or 0 for b in bookings if b.status in ('confirmed', 'completed') and b.service)
+        client.services_used = dict(Counter(b.service.name for b in bookings if b.service))
+    elif client:
+        # Add computed fields to existing client
+        client.emails = {client.email.lower()} if client.email else set()
+        client.phones = {client.phone} if client.phone else set()
+        client.confirmed_bookings = len([b for b in bookings if b.status in ('confirmed', 'completed')])
+        client.cancelled_bookings = len([b for b in bookings if b.status == 'cancelled'])
+        client.no_show_count = len([b for b in bookings if b.status == 'no_show'])
+        client.first_visit = bookings[-1].booking_date.strftime('%d %b %Y') if bookings else '-'
+        client.last_visit = bookings[0].booking_date.strftime('%d %b %Y') if bookings else '-'
+        client.total_spent = sum(b.service.price or 0 for b in bookings if b.status in ('confirmed', 'completed') and b.service)
+        client.services_used = dict(Counter(b.service.name for b in bookings if b.service))
+    else:
+        flash('No client found with that email.', 'error')
+        return redirect(url_for('admin_clients'))
+
+    # Get client notes
+    notes = ClientNote.query.filter(
+        ClientNote.client_email.ilike(identifier)
+    ).order_by(ClientNote.created_at.desc()).all()
+
+    return render_template('client_profile.html',
+                          client=client,
+                          bookings=bookings,
+                          notes=notes)
+
+
 # ==================== CUSTOMER BOOKING ====================
 
 @app.route('/book')
