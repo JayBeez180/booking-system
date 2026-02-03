@@ -11,6 +11,11 @@
         </p>
     </div>
     <div style="display: flex; gap: 10px;">
+        <form method="POST" action="{{ url_for('admin_clients_sync_from_bookings') }}" style="margin: 0;">
+            <button type="submit" class="btn" style="background: #6c5ce7; color: white;" onclick="return confirm('This will create client records from all existing bookings. Continue?')">
+                🔄 Sync from Bookings
+            </button>
+        </form>
         <a href="{{ url_for('admin_client_tags_list') }}" class="btn">Manage Tags</a>
         <a href="{{ url_for('admin_clients_import') }}" class="btn btn-success">Import CSV</a>
     </div>

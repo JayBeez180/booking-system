@@ -2269,6 +2269,24 @@ def intake_form():
         db.session.add(booking)
         db.session.commit()
 
+        # Create or update Client record for CRM/marketing
+        try:
+            from models import Client
+            client = Client.find_or_create(
+                email=customer_email,
+                phone=customer_phone,
+                name=customer_name,
+                source='booking'
+            )
+            # Update stats
+            client.total_bookings = (client.total_bookings or 0) + 1
+            client.last_booking_date = booking_date_obj
+            if not client.first_booking_date:
+                client.first_booking_date = booking_date_obj
+            db.session.commit()
+        except Exception as e:
+            print(f"[CLIENT] Could not create/update client record: {e}")
+
         # Build service description for log
         if len(all_services) > 1:
             all_service_names = ' + '.join(s.name for s in all_services)
@@ -2504,6 +2522,74 @@ def admin_clients():
         total_clients=total_clients,
         opted_in_count=opted_in_count
     )
+
+
+@app.route('/admin/clients/sync-from-bookings', methods=['POST'])
+@login_required
+def admin_clients_sync_from_bookings():
+    """Import all existing booking customers as clients"""
+    from models import Client, Booking
+    from sqlalchemy import func
+
+    # Get all unique customers from bookings
+    # Group by email to get stats
+    booking_stats = db.session.query(
+        Booking.customer_email,
+        Booking.customer_phone,
+        Booking.customer_name,
+        func.count(Booking.id).label('total_bookings'),
+        func.min(Booking.booking_date).label('first_booking'),
+        func.max(Booking.booking_date).label('last_booking')
+    ).filter(
+        Booking.customer_email.isnot(None),
+        Booking.customer_email != ''
+    ).group_by(
+        Booking.customer_email
+    ).all()
+
+    created = 0
+    updated = 0
+
+    for stat in booking_stats:
+        # Check if client already exists
+        existing = Client.query.filter(
+            db.or_(
+                Client.email == stat.customer_email,
+                db.and_(Client.phone == stat.customer_phone, stat.customer_phone != None, stat.customer_phone != '')
+            )
+        ).first()
+
+        if existing:
+            # Update stats
+            existing.total_bookings = stat.total_bookings
+            existing.first_booking_date = stat.first_booking
+            existing.last_booking_date = stat.last_booking
+            if not existing.name and stat.customer_name:
+                existing.name = stat.customer_name
+            if not existing.phone and stat.customer_phone:
+                existing.phone = stat.customer_phone
+            updated += 1
+        else:
+            # Create new client
+            import secrets
+            client = Client(
+                email=stat.customer_email,
+                phone=stat.customer_phone,
+                name=stat.customer_name,
+                source='booking',
+                email_opt_in=True,
+                unsubscribe_token=secrets.token_urlsafe(32),
+                total_bookings=stat.total_bookings,
+                first_booking_date=stat.first_booking,
+                last_booking_date=stat.last_booking
+            )
+            db.session.add(client)
+            created += 1
+
+    db.session.commit()
+
+    flash(f'Synced clients from bookings: {created} created, {updated} updated', 'success')
+    return redirect(url_for('admin_clients'))
 
 
 @app.route('/admin/clients/import', methods=['GET', 'POST'])
