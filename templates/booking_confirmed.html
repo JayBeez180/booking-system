@@ -44,7 +44,7 @@
         </div>
         <div class="detail-row">
             <span class="detail-label">Duration</span>
-            <span class="detail-value">{{ total_duration or service.duration_minutes }} minutes</span>
+            <span class="detail-value">{% set dur = total_duration or service.duration_minutes %}{% if dur >= 60 %}{{ dur // 60 }}hr{% if dur // 60 > 1 %}s{% endif %}{% if dur % 60 > 0 %} {{ dur % 60 }}min{% endif %}{% else %}{{ dur }} minutes{% endif %}</span>
         </div>
         {% if all_services and all_services|length > 1 and total_price %}
         <div class="detail-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(201, 169, 98, 0.3);">

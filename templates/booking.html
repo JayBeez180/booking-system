@@ -752,7 +752,7 @@
         });
 
         listDiv.innerHTML = listHTML;
-        document.getElementById('totalDuration').textContent = totalDuration + ' minutes';
+        document.getElementById('totalDuration').textContent = formatDuration(totalDuration);
         document.getElementById('totalPrice').textContent = '£' + totalPrice.toFixed(2);
 
         summaryDiv.style.display = 'block';
@@ -923,7 +923,7 @@
         document.getElementById('finalServices').textContent = serviceNames;
         document.getElementById('finalDate').textContent = formattedDate;
         document.getElementById('finalTime').textContent = time;
-        document.getElementById('finalDuration').textContent = totalDuration + ' minutes';
+        document.getElementById('finalDuration').textContent = formatDuration(totalDuration);
 
         // Update form
         var serviceIds = selectedServices.map(function(s) { return s.id; }).join(',');
@@ -944,6 +944,19 @@
         var div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Helper to format duration in hours and minutes
+    function formatDuration(minutes) {
+        if (minutes < 60) {
+            return minutes + ' minutes';
+        }
+        var hours = Math.floor(minutes / 60);
+        var mins = minutes % 60;
+        if (mins === 0) {
+            return hours + (hours === 1 ? 'hr' : 'hrs');
+        }
+        return hours + (hours === 1 ? 'hr ' : 'hrs ') + mins + 'min';
     }
 </script>
 {% endblock %}

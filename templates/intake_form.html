@@ -25,7 +25,7 @@
                     <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(201, 169, 98, 0.3);">
                         <div style="display: flex; justify-content: space-between;">
                             <span style="color: rgba(245, 241, 232, 0.7);">Total Duration:</span>
-                            <span style="font-weight: 600;">{{ total_duration }} minutes</span>
+                            <span style="font-weight: 600;">{% if total_duration >= 60 %}{{ total_duration // 60 }}hr{% if total_duration // 60 > 1 %}s{% endif %}{% if total_duration % 60 > 0 %} {{ total_duration % 60 }}min{% endif %}{% else %}{{ total_duration }} minutes{% endif %}</span>
                         </div>
                         {% if total_price %}
                         <div style="display: flex; justify-content: space-between; margin-top: 5px;">
