@@ -880,9 +880,30 @@ def admin_calendar():
     view = request.args.get('view', 'week')  # 'day', 'week' or 'month'
     date_str = request.args.get('date')
 
-    # Notes indicator temporarily disabled
+    # Build sets of emails/phones that have notes for calendar indicators
     emails_with_notes = set()
     phones_with_notes = set()
+
+    try:
+        from models import Client, ClientNote
+
+        # Get emails with notes from Client.notes field
+        clients_with_notes = Client.query.filter(Client.notes.isnot(None)).all()
+        for client in clients_with_notes:
+            if client.notes and client.notes.strip():
+                if client.email:
+                    emails_with_notes.add(client.email.lower().strip())
+                if client.phone:
+                    phones_with_notes.add(client.phone.replace(' ', '').replace('-', ''))
+
+        # Get emails with notes from ClientNote table
+        client_notes = ClientNote.query.with_entities(ClientNote.client_email).distinct().all()
+        for (email,) in client_notes:
+            if email:
+                emails_with_notes.add(email.lower().strip())
+    except Exception as e:
+        # If notes lookup fails, continue without indicators
+        print(f"[CALENDAR] Notes lookup warning: {e}")
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
