@@ -3797,6 +3797,22 @@ with app.app_context():
     db.create_all()
     print("Database tables created/verified!")
 
+    # Run simple migrations for new columns (db.create_all doesn't add columns to existing tables)
+    from sqlalchemy import inspect, text
+    inspector = inspect(db.engine)
+
+    # Add first_booking_date to client table if missing
+    if 'client' in inspector.get_table_names():
+        client_columns = [c['name'] for c in inspector.get_columns('client')]
+        if 'first_booking_date' not in client_columns:
+            try:
+                db.session.execute(text('ALTER TABLE client ADD COLUMN first_booking_date TIMESTAMP'))
+                db.session.commit()
+                print("Added first_booking_date column to client table")
+            except Exception as e:
+                print(f"Migration note: {e}")
+                db.session.rollback()
+
     # Create initial owner account if none exists
     owner_count = AdminUser.query.filter_by(role='owner').count()
     if owner_count == 0:
