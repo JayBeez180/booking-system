@@ -888,11 +888,12 @@ def admin_calendar():
         if note.client_email:
             emails_with_notes.add(note.client_email.lower())
     # Check Client.notes field
-    for client in Client.query.filter(Client.notes != None, Client.notes != '').all():
-        if client.email:
-            emails_with_notes.add(client.email.lower())
-        if client.phone:
-            phones_with_notes.add(client.phone)
+    for client in Client.query.all():
+        if client.notes and client.notes.strip():
+            if client.email:
+                emails_with_notes.add(client.email.lower())
+            if client.phone:
+                phones_with_notes.add(client.phone)
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
