@@ -891,6 +891,7 @@ def admin_calendar():
     for client in clients_with_notes:
         if client.email:
             emails_with_notes.add(client.email.lower())
+    print(f"[DEBUG] Emails with notes: {emails_with_notes}")
 
     if date_str:
         current_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -1128,6 +1129,7 @@ def admin_calendar():
             else:
                 category_slug = 'other'
             has_notes = booking.customer_email.lower() in emails_with_notes if booking.customer_email else False
+            print(f"[DEBUG] Booking {booking.id}: email={booking.customer_email}, has_notes={has_notes}")
             day_data['bookings'].append({
                 'id': booking.id,
                 'time': booking.booking_time,
