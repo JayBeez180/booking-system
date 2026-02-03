@@ -903,13 +903,14 @@ def admin_calendar():
         day_of_week = current_date.weekday()
         availability = Availability.query.filter_by(day_of_week=day_of_week, is_active=True).first()
 
-        # Default hours if no availability set
+        # For admin day view, always show full day 9am-9pm for full visibility
+        # Admin needs to see all times, even outside normal operating hours
         start_hour = 9
         end_hour = 21  # Show until 9pm
+        # Extend end time if availability goes later than 9pm
         if availability:
-            start_hour = int(availability.start_time.split(':')[0])
             avail_end = int(availability.end_time.split(':')[0])
-            end_hour = max(avail_end + 1, 21)  # Include last hour, minimum 9pm
+            end_hour = max(avail_end + 1, end_hour)
 
         # Generate time slots (every 15 minutes)
         time_slots = []
